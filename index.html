@@ -12,17 +12,21 @@
     <style>
         :root {
             --primary-blue: #1e3a8a;
-            --secondary-blue: #3b82f6;
-            --hover-blue: #2563eb;
+            --secondary-blue: #2563eb;
+            --hover-blue: #1d4ed8;
             --light-blue: #eff6ff;
             --accent-blue: #60a5fa;
-            --dark-gray: #1f2937;
-            --light-gray: #f3f4f6;
-            --text-muted: #6b7280;
+            --dark-gray: #0f172a;
+            --light-gray: #f8fafc;
+            --text-muted: #64748b;
             --white: #ffffff;
-            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --transition: all 0.25s ease-in-out;
+            --danger-red: #ef4444;
+            --danger-hover: #dc2626;
+            --warning-amber: #f59e0b;
+            --success-green: #10b981;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --hover-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+            --transition: all 0.25s ease;
         }
 
         * {
@@ -33,19 +37,19 @@
         }
 
         body {
-            background-color: #f8fafc;
+            background-color: var(--light-gray);
             color: var(--dark-gray);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        /* Header & Navigation */
+        /* Header Navigation */
         header {
             background-color: var(--primary-blue);
             color: var(--white);
             padding: 1.25rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         }
 
         .header-container {
@@ -62,7 +66,34 @@
             letter-spacing: -0.025em;
         }
 
-        .admin-btn {
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-status {
+            font-size: 0.875rem;
+            background: rgba(255,255,255,0.15);
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-blue);
+        }
+
+        .status-badge.admin {
+            background-color: var(--warning-amber);
+        }
+
+        .btn-header {
             background-color: transparent;
             border: 1.5px solid var(--accent-blue);
             color: var(--white);
@@ -73,12 +104,12 @@
             transition: var(--transition);
         }
 
-        .admin-btn:hover {
+        .btn-header:hover {
             background-color: var(--secondary-blue);
             border-color: var(--secondary-blue);
         }
 
-        /* Container & Hero Section */
+        /* Main Container */
         main {
             max-width: 1200px;
             margin: 0 auto;
@@ -87,7 +118,7 @@
             width: 100%;
         }
 
-        /* Metrics Section */
+        /* Metrics Grid */
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -105,11 +136,12 @@
 
         .metric-card span {
             display: block;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.25rem;
+            font-weight: 600;
         }
 
         .metric-card strong {
@@ -117,7 +149,7 @@
             color: var(--primary-blue);
         }
 
-        /* Search Section */
+        /* Search Container */
         .search-container {
             margin-bottom: 2rem;
         }
@@ -135,10 +167,10 @@
 
         .search-input:focus {
             border-color: var(--secondary-blue);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
-        /* Controls / Breadcrumb Header */
+        /* Breadcrumb / Back Control Bar */
         .view-controls {
             display: flex;
             align-items: center;
@@ -149,7 +181,7 @@
 
         .breadcrumb {
             font-size: 1.25rem;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--primary-blue);
             display: flex;
             align-items: center;
@@ -160,7 +192,7 @@
             background-color: var(--light-blue);
             color: var(--secondary-blue);
             border: 1px solid var(--accent-blue);
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1.25rem;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
@@ -175,16 +207,16 @@
             color: var(--white);
         }
 
-        /* Responsive Grid & Cards */
+        /* Card Grid */
         .portal-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 1.5rem;
         }
 
         .card {
             background-color: var(--white);
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 1.5rem;
             box-shadow: var(--card-shadow);
             cursor: pointer;
@@ -193,7 +225,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            align-items: flex-start;
+            position: relative;
         }
 
         .card:hover {
@@ -202,9 +234,13 @@
             border-color: var(--accent-blue);
         }
 
+        .card-header-area {
+            margin-bottom: 1rem;
+        }
+
         .card-title {
-            font-size: 1.15rem;
-            font-weight: 600;
+            font-size: 1.2rem;
+            font-weight: 700;
             color: var(--dark-gray);
             display: flex;
             align-items: center;
@@ -213,9 +249,10 @@
         }
 
         .card-subtitle {
-            font-size: 0.875rem;
+            font-size: 0.9rem;
             color: var(--text-muted);
             margin-top: 0.5rem;
+            font-weight: 500;
         }
 
         .card-action {
@@ -225,22 +262,96 @@
             color: var(--secondary-blue);
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            justify-content: space-between;
         }
 
-        /* Empty / Status States */
+        /* Admin Action Buttons on Cards */
+        .admin-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .btn-card-action {
+            padding: 0.35rem 0.65rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .btn-edit {
+            background-color: var(--light-blue);
+            color: var(--secondary-blue);
+        }
+
+        .btn-edit:hover {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        .btn-deactivate {
+            background-color: #fffbeeb;
+            color: var(--warning-amber);
+            border: 1px solid var(--warning-amber);
+        }
+
+        .btn-deactivate:hover {
+            background-color: var(--warning-amber);
+            color: var(--white);
+        }
+
+        .btn-delete {
+            background-color: #fef2f2;
+            color: var(--danger-red);
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-red);
+            color: var(--white);
+        }
+
+        /* Loading Spinner & Status Display */
+        .loading-spinner {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 1rem;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid var(--secondary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .status-message {
             text-align: center;
             padding: 4rem 1rem;
             background-color: var(--white);
-            border-radius: 8px;
+            border-radius: 12px;
             box-shadow: var(--card-shadow);
             color: var(--text-muted);
             font-size: 1.1rem;
             grid-column: 1 / -1;
         }
 
-        /* Modal Styles */
+        /* Modals */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -267,12 +378,14 @@
             background-color: var(--white);
             border-radius: 12px;
             width: 100%;
-            max-width: 480px;
+            max-width: 500px;
             padding: 2rem;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
             position: relative;
             transform: translateY(10px);
             transition: transform 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-overlay.active .modal-card {
@@ -287,7 +400,7 @@
         }
 
         .modal-header h2 {
-            font-size: 1.25rem;
+            font-size: 1.3rem;
             color: var(--primary-blue);
         }
 
@@ -325,7 +438,7 @@
 
         .form-control:focus {
             border-color: var(--secondary-blue);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
         .submit-btn {
@@ -379,7 +492,6 @@
             margin-top: auto;
         }
 
-        /* Utility */
         .hidden {
             display: none !important;
         }
@@ -394,6 +506,15 @@
             .portal-grid {
                 grid-template-columns: 1fr;
             }
+            .header-container {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+            .user-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
         }
     </style>
 </head>
@@ -405,13 +526,20 @@
             <div class="logo-title">
                 <h1>Sports Table Check Portal</h1>
             </div>
-            <button class="admin-btn" id="adminToggleBtn" onclick="openLoginModal()">Admin Login</button>
+            <div class="user-controls">
+                <div class="user-status" id="userStatusDisplay">
+                    <span class="status-badge" id="userStatusBadge"></span>
+                    <span id="userRoleText">Not Logged In</span>
+                </div>
+                <button class="btn-header hidden" id="addCompNavBtn" onclick="openAddModal()">Add Competition</button>
+                <button class="btn-header" id="authBtn" onclick="handleAuthClick()">Login</button>
+            </div>
         </div>
     </header>
 
     <!-- Main Container -->
     <main>
-        <!-- Metrics -->
+        <!-- Metrics Bar -->
         <section class="metrics-grid">
             <div class="metric-card">
                 <span>Sports</span>
@@ -433,12 +561,12 @@
                 type="text" 
                 id="searchInput" 
                 class="search-input" 
-                placeholder="Search sports, countries, or competitions..." 
-                oninput="handleSearch()"
+                placeholder="Search sports..." 
+                oninput="handleScopedSearch()"
             >
         </section>
 
-        <!-- View Navigation Header -->
+        <!-- Navigation Breadcrumbs & Back Button -->
         <div class="view-controls">
             <div class="breadcrumb" id="breadcrumb">
                 <span>Sports</span>
@@ -448,17 +576,20 @@
             </button>
         </div>
 
-        <!-- Main Display Grid -->
+        <!-- Dynamic Portal Grid -->
         <section class="portal-grid" id="portalGrid">
-            <div class="status-message">Loading data from database...</div>
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <div>Loading data from database...</div>
+            </div>
         </section>
     </main>
 
-    <!-- Admin Login Modal -->
+    <!-- Login Modal -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>Admin Authentication</h2>
+                <h2>User Authentication</h2>
                 <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
             </div>
             <div id="loginAlert" class="alert-box"></div>
@@ -476,15 +607,16 @@
         </div>
     </div>
 
-    <!-- Add Competition Modal -->
+    <!-- Admin Form Modal (Add / Edit) -->
     <div class="modal-overlay" id="adminModal">
         <div class="modal-card">
             <div class="modal-header">
-                <h2>Add Competition</h2>
+                <h2 id="adminModalTitle">Add Competition</h2>
                 <button class="close-btn" onclick="closeModal('adminModal')">&times;</button>
             </div>
             <div id="adminAlert" class="alert-box"></div>
-            <form onsubmit="handleAddCompetition(event)">
+            <form onsubmit="handleSaveCompetition(event)">
+                <input type="hidden" id="editDocId" value="">
                 <div class="form-group">
                     <label for="addSport">Sport Name</label>
                     <input type="text" id="addSport" class="form-control" placeholder="e.g. Rugby" required>
@@ -525,22 +657,21 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // 2. State Management
+        // 2. Application State
         let rawData = [];
-        let currentView = 'SPORTS'; // 'SPORTS' | 'COUNTRIES' | 'COMPETITIONS' | 'SEARCH'
+        let currentView = 'SPORTS'; // 'SPORTS' | 'COUNTRIES' | 'COMPETITIONS'
         let selectedSport = null;
         let selectedCountry = null;
-        let isAdminLoggedIn = false;
+        let currentUserRole = null; // null | 'USER' | 'ADMIN'
 
-        // Sport Icons Mapper
+        // Dynamic Icon Resolver
         const sportIcons = {
+            'rugby': '🏉',
             'basketball': '🏀',
-            'baseball': '⚾',
             'volleyball': '🏐',
             'hockey': '🏑',
-            'ice hockey': '🏒',
+            'baseball': '⚾',
             'american football': '🏈',
-            'rugby': '🏉',
             'australian football': '🏉',
             'handball': '🤾',
             'football': '⚽',
@@ -549,24 +680,34 @@
             'table tennis': '🏓',
             'cricket': '🏏',
             'badminton': '🏸',
-            'golf': '⛳'
+            'golf': '⛳',
+            'ice hockey': '🏒'
         };
 
         function getSportIcon(sportName) {
-            const cleanName = sportName.trim().toLowerCase();
-            return sportIcons[cleanName] || '🏆';
+            if (!sportName) return '🏆';
+            const clean = sportName.trim().toLowerCase();
+            return sportIcons[clean] || '🏆';
         }
 
         // 3. Initialization
         window.addEventListener('DOMContentLoaded', () => {
+            updateUserUI();
             fetchTableChecks();
         });
 
         // 4. Firestore Fetch Data
         function fetchTableChecks() {
-            db.collection('tableChecks')
-                .where('active', '==', true)
-                .get()
+            showLoadingState();
+            
+            let query = db.collection('tableChecks');
+            
+            // Non-admin users only fetch active items
+            if (currentUserRole !== 'ADMIN') {
+                query = query.where('active', '==', true);
+            }
+
+            query.get()
                 .then((querySnapshot) => {
                     rawData = [];
                     querySnapshot.forEach((doc) => {
@@ -574,36 +715,46 @@
                     });
                     
                     calculateMetrics();
-                    renderCurrentState();
+                    renderCurrentView();
                 })
                 .catch((error) => {
-                    console.error("Error loading table checks: ", error);
-                    const grid = document.getElementById('portalGrid');
-                    grid.innerHTML = `<div class="status-message">Error fetching data. Please refresh or try again later.</div>`;
+                    console.error("Error reading Firestore: ", error);
+                    renderEmptyState("Failed to load data from database.");
                 });
         }
 
-        // 5. Calculations & Rendering Logic
+        function showLoadingState() {
+            const grid = document.getElementById('portalGrid');
+            grid.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div>Loading data from database...</div>
+                </div>
+            `;
+        }
+
+        // 5. Metrics & Render Routing
         function calculateMetrics() {
             const sportsSet = new Set();
             const countriesSet = new Set();
+            let totalCompetitions = 0;
 
             rawData.forEach(item => {
-                if (item.sport) sportsSet.add(item.sport.trim());
-                if (item.country) countriesSet.add(item.country.trim());
+                if (currentUserRole === 'ADMIN' || item.active) {
+                    if (item.sport) sportsSet.add(item.sport.trim().toLowerCase());
+                    if (item.country) countriesSet.add(item.country.trim().toLowerCase());
+                    totalCompetitions++;
+                }
             });
 
             document.getElementById('metricSports').textContent = sportsSet.size;
             document.getElementById('metricCountries').textContent = countriesSet.size;
-            document.getElementById('metricCompetitions').textContent = rawData.length;
+            document.getElementById('metricCompetitions').textContent = totalCompetitions;
         }
 
-        function renderCurrentState() {
-            const searchVal = document.getElementById('searchInput').value.trim();
-            if (searchVal !== '') {
-                renderSearchView(searchVal);
-                return;
-            }
+        function renderCurrentView() {
+            updateSearchPlaceholder();
+            updateBreadcrumbs();
 
             if (rawData.length === 0) {
                 renderEmptyState("No competitions available.");
@@ -627,20 +778,42 @@
             document.getElementById('portalGrid').innerHTML = `<div class="status-message">${msg}</div>`;
         }
 
-        // --- View 1: Sports ---
+        function updateSearchPlaceholder() {
+            const input = document.getElementById('searchInput');
+            if (currentView === 'SPORTS') {
+                input.placeholder = "Search Sports only...";
+            } else if (currentView === 'COUNTRIES') {
+                input.placeholder = `Search Countries under ${selectedSport}...`;
+            } else if (currentView === 'COMPETITIONS') {
+                input.placeholder = `Search Competitions in ${selectedCountry}...`;
+            }
+        }
+
+        // --- STEP 1: SPORTS VIEW ---
         function renderSportsView() {
             currentView = 'SPORTS';
-            updateBreadcrumbs();
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
+            // Aggregate sports and total competitions per sport
             const sportsMap = {};
             rawData.forEach(item => {
+                if (currentUserRole !== 'ADMIN' && !item.active) return;
                 const sp = item.sport ? item.sport.trim() : 'Unknown';
-                sportsMap[sp] = (sportsMap[sp] || 0) + 1;
+                if (!sportsMap[sp]) {
+                    sportsMap[sp] = 0;
+                }
+                sportsMap[sp]++;
             });
 
-            const sportsList = Object.keys(sportsMap).sort();
+            let sportsList = Object.keys(sportsMap).sort();
+
+            // Filter sports if query present
+            if (query !== '') {
+                sportsList = sportsList.filter(sp => sp.toLowerCase().includes(query));
+            }
+
             if (sportsList.length === 0) {
-                renderEmptyState("No competitions available.");
+                renderEmptyState(query ? "No sports match your search." : "No sports available.");
                 return;
             }
 
@@ -650,11 +823,14 @@
                 const count = sportsMap[sport];
                 html += `
                     <div class="card" onclick="selectSport('${escapeQuotes(sport)}')">
-                        <div>
+                        <div class="card-header-area">
                             <div class="card-title">${icon} ${escapeHtml(sport)}</div>
-                            <div class="card-subtitle">${count} competition${count > 1 ? 's' : ''}</div>
+                            <div class="card-subtitle">${count} Competition${count !== 1 ? 's' : ''}</div>
                         </div>
-                        <div class="card-action">View Countries &rarr;</div>
+                        <div class="card-action">
+                            <span>Browse Countries</span>
+                            <span>&rarr;</span>
+                        </div>
                     </div>
                 `;
             });
@@ -665,27 +841,37 @@
         function selectSport(sport) {
             selectedSport = sport;
             currentView = 'COUNTRIES';
-            renderCountriesView();
+            document.getElementById('searchInput').value = '';
+            renderCurrentView();
         }
 
-        // --- View 2: Countries ---
+        // --- STEP 2: COUNTRIES VIEW ---
         function renderCountriesView() {
             currentView = 'COUNTRIES';
-            updateBreadcrumbs();
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
-            const filtered = rawData.filter(item => 
-                item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase()
-            );
+            // Filter items under selected sport
+            const filteredBySport = rawData.filter(item => {
+                if (currentUserRole !== 'ADMIN' && !item.active) return false;
+                return item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase();
+            });
 
+            // Aggregate countries
             const countriesMap = {};
-            filtered.forEach(item => {
+            filteredBySport.forEach(item => {
                 const ct = item.country ? item.country.trim() : 'Unknown';
                 countriesMap[ct] = (countriesMap[ct] || 0) + 1;
             });
 
-            const countryList = Object.keys(countriesMap).sort();
+            let countryList = Object.keys(countriesMap).sort();
+
+            // Filter countries if query present
+            if (query !== '') {
+                countryList = countryList.filter(ct => ct.toLowerCase().includes(query));
+            }
+
             if (countryList.length === 0) {
-                renderEmptyState("No countries found for this sport.");
+                renderEmptyState(query ? "No countries match your search." : "No countries available for this sport.");
                 return;
             }
 
@@ -694,11 +880,14 @@
                 const count = countriesMap[country];
                 html += `
                     <div class="card" onclick="selectCountry('${escapeQuotes(country)}')">
-                        <div>
+                        <div class="card-header-area">
                             <div class="card-title">🌐 ${escapeHtml(country)}</div>
-                            <div class="card-subtitle">${count} competition${count > 1 ? 's' : ''}</div>
+                            <div class="card-subtitle">${count} Competition${count !== 1 ? 's' : ''}</div>
                         </div>
-                        <div class="card-action">View Competitions &rarr;</div>
+                        <div class="card-action">
+                            <span>Browse Competitions</span>
+                            <span>&rarr;</span>
+                        </div>
                     </div>
                 `;
             });
@@ -709,37 +898,63 @@
         function selectCountry(country) {
             selectedCountry = country;
             currentView = 'COMPETITIONS';
-            renderCompetitionsView();
+            document.getElementById('searchInput').value = '';
+            renderCurrentView();
         }
 
-        // --- View 3: Competitions ---
+        // --- STEP 3: COMPETITIONS VIEW ---
         function renderCompetitionsView() {
             currentView = 'COMPETITIONS';
-            updateBreadcrumbs();
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
 
-            const filtered = rawData.filter(item => 
-                item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase() &&
-                item.country && item.country.trim().toLowerCase() === selectedCountry.toLowerCase()
-            );
+            let competitions = rawData.filter(item => {
+                if (currentUserRole !== 'ADMIN' && !item.active) return false;
+                return item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase() &&
+                       item.country && item.country.trim().toLowerCase() === selectedCountry.toLowerCase();
+            });
 
-            if (filtered.length === 0) {
-                renderEmptyState("No competitions found.");
+            if (query !== '') {
+                competitions = competitions.filter(item => {
+                    const compName = (item.competition || '').toLowerCase();
+                    const fullFormat = `${item.country || ''} - ${item.competition || ''}`.toLowerCase();
+                    return compName.includes(query) || fullFormat.includes(query);
+                });
+            }
+
+            if (competitions.length === 0) {
+                renderEmptyState(query ? "No competitions match your search." : "No competitions available.");
                 return;
             }
 
             let html = '';
-            filtered.forEach(comp => {
-                const compName = comp.competition || 'Unnamed Competition';
-                const countryName = comp.country || '';
-                const fileName = comp.file || '#';
+            competitions.forEach(item => {
+                const countryName = item.country ? item.country.trim() : '';
+                const compName = item.competition ? item.competition.trim() : 'Unnamed Competition';
+                const fileName = item.file || '#';
+                const isInactive = !item.active;
 
                 html += `
                     <div class="card" onclick="launchCompetition('${escapeQuotes(fileName)}')">
-                        <div>
-                            <div class="card-title">🏆 ${escapeHtml(countryName)} - ${escapeHtml(compName)}</div>
+                        <div class="card-header-area">
+                            <div class="card-title">
+                                🏆 ${escapeHtml(countryName)} - ${escapeHtml(compName)}
+                                ${isInactive ? '<span style="font-size:0.75rem; color:var(--danger-red); border:1px solid var(--danger-red); padding:1px 5px; border-radius:4px;">Inactive</span>' : ''}
+                            </div>
                             <div class="card-subtitle">File: ${escapeHtml(fileName)}</div>
                         </div>
-                        <div class="card-action">Launch Tool &rarr;</div>
+                        <div class="card-action">
+                            <span>Open HTML Tool</span>
+                            <span>&rarr;</span>
+                        </div>
+                        ${currentUserRole === 'ADMIN' ? `
+                            <div class="admin-card-actions" onclick="event.stopPropagation()">
+                                <button class="btn-card-action btn-edit" onclick="openEditModal('${item.id}')">Edit</button>
+                                <button class="btn-card-action btn-deactivate" onclick="toggleActiveStatus('${item.id}', ${item.active})">
+                                    ${item.active ? 'Deactivate' : 'Activate'}
+                                </button>
+                                <button class="btn-card-action btn-delete" onclick="deleteCompetition('${item.id}')">Delete</button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             });
@@ -747,72 +962,31 @@
             document.getElementById('portalGrid').innerHTML = html;
         }
 
+        // --- STEP 4: LAUNCH COMPETITION FILE ---
         function launchCompetition(filePath) {
             if (!filePath || filePath === '#') {
-                alert("No valid HTML file attached to this competition.");
+                alert("No HTML file associated with this competition.");
                 return;
             }
             window.location.href = filePath;
         }
 
-        // --- Search View ---
-        function handleSearch() {
-            const query = document.getElementById('searchInput').value.trim();
-            if (query === '') {
-                renderCurrentState();
-            } else {
-                renderSearchView(query);
-            }
+        // 6. Search Handler
+        function handleScopedSearch() {
+            renderCurrentView();
         }
 
-        function renderSearchView(query) {
-            const q = query.toLowerCase();
-            document.getElementById('backBtn').classList.add('hidden');
-            document.getElementById('breadcrumb').innerHTML = `<span>Search results for "${escapeHtml(query)}"</span>`;
-
-            const filtered = rawData.filter(item => {
-                const sp = (item.sport || '').toLowerCase();
-                const ct = (item.country || '').toLowerCase();
-                const cp = (item.competition || '').toLowerCase();
-                return sp.includes(q) || ct.includes(q) || cp.includes(q);
-            });
-
-            if (filtered.length === 0) {
-                renderEmptyState("No matching competitions found.");
-                return;
-            }
-
-            let html = '';
-            filtered.forEach(comp => {
-                const icon = getSportIcon(comp.sport || '');
-                const displayTitle = `${comp.country || ''} - ${comp.competition || ''}`;
-                
-                html += `
-                    <div class="card" onclick="launchCompetition('${escapeQuotes(comp.file || '')}')">
-                        <div>
-                            <div class="card-title">${icon} ${escapeHtml(displayTitle)}</div>
-                            <div class="card-subtitle">Sport: ${escapeHtml(comp.sport || '')}</div>
-                        </div>
-                        <div class="card-action">Launch Tool &rarr;</div>
-                    </div>
-                `;
-            });
-
-            document.getElementById('portalGrid').innerHTML = html;
-        }
-
-        // 6. Navigation Controls
+        // 7. Navigation Breadcrumbs & Back Logic
         function navigateBack() {
             document.getElementById('searchInput').value = '';
             if (currentView === 'COMPETITIONS') {
                 selectedCountry = null;
                 currentView = 'COUNTRIES';
-                renderCountriesView();
             } else if (currentView === 'COUNTRIES') {
                 selectedSport = null;
                 currentView = 'SPORTS';
-                renderSportsView();
             }
+            renderCurrentView();
         }
 
         function updateBreadcrumbs() {
@@ -846,25 +1020,19 @@
             selectedCountry = null;
             currentView = 'SPORTS';
             document.getElementById('searchInput').value = '';
-            renderSportsView();
+            renderCurrentView();
         }
 
-        // 7. Admin Logic
-        function openLoginModal() {
-            if (isAdminLoggedIn) {
-                openModal('adminModal');
+        // 8. Authentication Management
+        function handleAuthClick() {
+            if (currentUserRole !== null) {
+                // Logout logic
+                currentUserRole = null;
+                updateUserUI();
+                fetchTableChecks();
             } else {
                 openModal('loginModal');
             }
-        }
-
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-            showAlert(id === 'loginModal' ? 'loginAlert' : 'adminAlert', '', 'none');
         }
 
         function handleLogin(event) {
@@ -873,33 +1041,96 @@
             const pass = document.getElementById('loginPass').value.trim();
 
             if (user === "OSED" && pass === "OSED@1234") {
-                isAdminLoggedIn = true;
+                currentUserRole = 'USER';
                 closeModal('loginModal');
-                document.getElementById('loginUser').value = '';
-                document.getElementById('loginPass').value = '';
-                document.getElementById('adminToggleBtn').textContent = "Add Competition";
-                openModal('adminModal');
+                resetLoginForm();
+                updateUserUI();
+                fetchTableChecks();
+            } else if (user === "Partha Sarathy" && pass === "Radha@123") {
+                currentUserRole = 'ADMIN';
+                closeModal('loginModal');
+                resetLoginForm();
+                updateUserUI();
+                fetchTableChecks();
             } else {
-                showAlert('loginAlert', 'Invalid Username or Password.', 'error');
+                showAlert('loginAlert', 'Invalid credentials. Please try again.', 'error');
             }
         }
 
-        function handleAddCompetition(event) {
+        function resetLoginForm() {
+            document.getElementById('loginUser').value = '';
+            document.getElementById('loginPass').value = '';
+            showAlert('loginAlert', '', 'none');
+        }
+
+        function updateUserUI() {
+            const authBtn = document.getElementById('authBtn');
+            const addCompNavBtn = document.getElementById('addCompNavBtn');
+            const roleText = document.getElementById('userRoleText');
+            const badge = document.getElementById('userStatusBadge');
+
+            if (currentUserRole === 'ADMIN') {
+                authBtn.textContent = 'Logout (Admin)';
+                addCompNavBtn.classList.remove('hidden');
+                roleText.textContent = 'Admin: Partha Sarathy';
+                badge.className = 'status-badge admin';
+            } else if (currentUserRole === 'USER') {
+                authBtn.textContent = 'Logout (OSED)';
+                addCompNavBtn.classList.add('hidden');
+                roleText.textContent = 'User: OSED';
+                badge.className = 'status-badge';
+            } else {
+                authBtn.textContent = 'Login';
+                addCompNavBtn.classList.add('hidden');
+                roleText.textContent = 'Guest Mode';
+                badge.className = 'status-badge';
+            }
+        }
+
+        // 9. Admin Operations (CRUD)
+        function openAddModal() {
+            document.getElementById('adminModalTitle').textContent = 'Add Competition';
+            document.getElementById('editDocId').value = '';
+            document.getElementById('addSport').value = selectedSport || '';
+            document.getElementById('addCountry').value = selectedCountry || '';
+            document.getElementById('addCompetition').value = '';
+            document.getElementById('addFile').value = '';
+            showAlert('adminAlert', '', 'none');
+            openModal('adminModal');
+        }
+
+        function openEditModal(docId) {
+            const item = rawData.find(d => d.id === docId);
+            if (!item) return;
+
+            document.getElementById('adminModalTitle').textContent = 'Edit Competition';
+            document.getElementById('editDocId').value = docId;
+            document.getElementById('addSport').value = item.sport || '';
+            document.getElementById('addCountry').value = item.country || '';
+            document.getElementById('addCompetition').value = item.competition || '';
+            document.getElementById('addFile').value = item.file || '';
+            showAlert('adminAlert', '', 'none');
+            openModal('adminModal');
+        }
+
+        function handleSaveCompetition(event) {
             event.preventDefault();
 
+            const docId = document.getElementById('editDocId').value.trim();
             const sport = document.getElementById('addSport').value.trim();
             const country = document.getElementById('addCountry').value.trim();
             const competition = document.getElementById('addCompetition').value.trim();
             const file = document.getElementById('addFile').value.trim();
 
-            // Validation 1: All mandatory
+            // Validation: Mandatory fields
             if (!sport || !country || !competition || !file) {
-                showAlert('adminAlert', 'All fields are mandatory.', 'error');
+                showAlert('adminAlert', 'All fields are required.', 'error');
                 return;
             }
 
-            // Validation 2: Check Duplicate (Sport + Country + Competition)
+            // Validation: Prevent duplicates (Sport + Country + Competition)
             const isDuplicate = rawData.some(item => 
+                item.id !== docId &&
                 item.sport && item.sport.trim().toLowerCase() === sport.toLowerCase() &&
                 item.country && item.country.trim().toLowerCase() === country.toLowerCase() &&
                 item.competition && item.competition.trim().toLowerCase() === competition.toLowerCase()
@@ -914,26 +1145,90 @@
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving...';
 
-            // Save to Firestore
-            db.collection('tableChecks').add({
-                sport: sport,
-                country: country,
-                competition: competition,
-                file: file,
-                active: true
+            if (docId) {
+                // Update existing
+                db.collection('tableChecks').doc(docId).update({
+                    sport: sport,
+                    country: country,
+                    competition: competition,
+                    file: file
+                })
+                .then(() => {
+                    showAlert('adminAlert', 'Competition updated successfully!', 'success');
+                    setTimeout(() => {
+                        closeModal('adminModal');
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Competition';
+                        fetchTableChecks();
+                    }, 1000);
+                })
+                .catch(err => {
+                    showAlert('adminAlert', 'Failed to update: ' + err.message, 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Competition';
+                });
+            } else {
+                // Add new document
+                db.collection('tableChecks').add({
+                    sport: sport,
+                    country: country,
+                    competition: competition,
+                    file: file,
+                    active: true,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+                .then(() => {
+                    showAlert('adminAlert', 'Competition saved successfully!', 'success');
+                    setTimeout(() => {
+                        closeModal('adminModal');
+                        saveBtn.disabled = false;
+                        saveBtn.textContent = 'Save Competition';
+                        fetchTableChecks();
+                    }, 1000);
+                })
+                .catch(err => {
+                    showAlert('adminAlert', 'Failed to save: ' + err.message, 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Competition';
+                });
+            }
+        }
+
+        function toggleActiveStatus(docId, currentActive) {
+            if (!confirm(`Are you sure you want to ${currentActive ? 'deactivate' : 'activate'} this competition?`)) return;
+
+            db.collection('tableChecks').doc(docId).update({
+                active: !currentActive
             })
             .then(() => {
-                showAlert('adminAlert', 'Competition added successfully! Refreshing...', 'success');
-                setTimeout(() => {
-                    location.reload();
-                }, 1200);
+                fetchTableChecks();
             })
-            .catch((error) => {
-                console.error("Error adding document: ", error);
-                showAlert('adminAlert', 'Error saving competition: ' + error.message, 'error');
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'Save Competition';
+            .catch(err => {
+                alert("Failed to update status: " + err.message);
             });
+        }
+
+        function deleteCompetition(docId) {
+            if (!confirm("Are you sure you want to permanently delete this competition?")) return;
+
+            db.collection('tableChecks').doc(docId).delete()
+                .then(() => {
+                    fetchTableChecks();
+                })
+                .catch(err => {
+                    alert("Failed to delete competition: " + err.message);
+                });
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            if (id === 'loginModal') showAlert('loginAlert', '', 'none');
+            if (id === 'adminModal') showAlert('adminAlert', '', 'none');
         }
 
         function showAlert(alertId, message, type) {
@@ -947,7 +1242,7 @@
             alertBox.textContent = message;
         }
 
-        // Helpers
+        // Sanitization Helpers
         function escapeHtml(str) {
             if (!str) return '';
             return str
