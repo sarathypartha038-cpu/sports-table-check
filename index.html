@@ -80,6 +80,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            font-weight: 500;
         }
 
         .status-badge {
@@ -529,7 +530,7 @@
             <div class="user-controls">
                 <div class="user-status" id="userStatusDisplay">
                     <span class="status-badge" id="userStatusBadge"></span>
-                    <span id="userRoleText">Not Logged In</span>
+                    <span id="userRoleText">Guest Mode</span>
                 </div>
                 <button class="btn-header hidden" id="addCompNavBtn" onclick="openAddModal()">Add Competition</button>
                 <button class="btn-header" id="authBtn" onclick="handleAuthClick()">Login</button>
@@ -690,11 +691,21 @@
             return sportIcons[clean] || '🏆';
         }
 
-        // 3. Initialization
+        // 3. Initialization & Session Restoration
         window.addEventListener('DOMContentLoaded', () => {
-            updateUserUI();
+            restoreSession();
             fetchTableChecks();
         });
+
+        function restoreSession() {
+            const savedRole = localStorage.getItem('sportsPortalRole');
+            if (savedRole === 'ADMIN' || savedRole === 'USER') {
+                currentUserRole = savedRole;
+            } else {
+                currentUserRole = null;
+            }
+            updateUserUI();
+        }
 
         // 4. Firestore Fetch Data
         function fetchTableChecks() {
@@ -1023,11 +1034,12 @@
             renderCurrentView();
         }
 
-        // 8. Authentication Management
+        // 8. Authentication & Session Management
         function handleAuthClick() {
             if (currentUserRole !== null) {
                 // Logout logic
                 currentUserRole = null;
+                localStorage.removeItem('sportsPortalRole');
                 updateUserUI();
                 fetchTableChecks();
             } else {
@@ -1042,18 +1054,20 @@
 
             if (user === "OSED" && pass === "OSED@1234") {
                 currentUserRole = 'USER';
+                localStorage.setItem('sportsPortalRole', 'USER');
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
                 fetchTableChecks();
             } else if (user === "Partha Sarathy" && pass === "Radha@123") {
                 currentUserRole = 'ADMIN';
+                localStorage.setItem('sportsPortalRole', 'ADMIN');
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
                 fetchTableChecks();
             } else {
-                showAlert('loginAlert', 'Invalid credentials. Please try again.', 'error');
+                showAlert('loginAlert', 'Invalid username or password', 'error');
             }
         }
 
@@ -1070,14 +1084,14 @@
             const badge = document.getElementById('userStatusBadge');
 
             if (currentUserRole === 'ADMIN') {
-                authBtn.textContent = 'Logout (Admin)';
+                authBtn.textContent = 'Logout';
                 addCompNavBtn.classList.remove('hidden');
-                roleText.textContent = 'Admin: Partha Sarathy';
+                roleText.textContent = 'Logged in as: Admin';
                 badge.className = 'status-badge admin';
             } else if (currentUserRole === 'USER') {
-                authBtn.textContent = 'Logout (OSED)';
+                authBtn.textContent = 'Logout';
                 addCompNavBtn.classList.add('hidden');
-                roleText.textContent = 'User: OSED';
+                roleText.textContent = 'Logged in as: User';
                 badge.className = 'status-badge';
             } else {
                 authBtn.textContent = 'Login';
@@ -1089,6 +1103,12 @@
 
         // 9. Admin Operations (CRUD)
         function openAddModal() {
+            // Strict Authorization Guard
+            if (currentUserRole !== 'ADMIN') {
+                alert("Access Denied: Only Admin users can add competitions.");
+                return;
+            }
+
             document.getElementById('adminModalTitle').textContent = 'Add Competition';
             document.getElementById('editDocId').value = '';
             document.getElementById('addSport').value = selectedSport || '';
@@ -1100,6 +1120,11 @@
         }
 
         function openEditModal(docId) {
+            if (currentUserRole !== 'ADMIN') {
+                alert("Access Denied: Only Admin users can edit competitions.");
+                return;
+            }
+
             const item = rawData.find(d => d.id === docId);
             if (!item) return;
 
@@ -1115,6 +1140,11 @@
 
         function handleSaveCompetition(event) {
             event.preventDefault();
+
+            if (currentUserRole !== 'ADMIN') {
+                showAlert('adminAlert', 'Permission denied: Admin rights required.', 'error');
+                return;
+            }
 
             const docId = document.getElementById('editDocId').value.trim();
             const sport = document.getElementById('addSport').value.trim();
@@ -1195,6 +1225,7 @@
         }
 
         function toggleActiveStatus(docId, currentActive) {
+            if (currentUserRole !== 'ADMIN') return;
             if (!confirm(`Are you sure you want to ${currentActive ? 'deactivate' : 'activate'} this competition?`)) return;
 
             db.collection('tableChecks').doc(docId).update({
@@ -1209,6 +1240,7 @@
         }
 
         function deleteCompetition(docId) {
+            if (currentUserRole !== 'ADMIN') return;
             if (!confirm("Are you sure you want to permanently delete this competition?")) return;
 
             db.collection('tableChecks').doc(docId).delete()
