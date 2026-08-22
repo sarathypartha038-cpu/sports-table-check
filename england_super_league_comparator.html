@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>England - Super League Standings Comparator</title>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Firebase v8.10.1 Libraries -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-subtle: #f1f5f9;
+            --border-color: #cbd5e1;
+            --border-dark: #94a3b8;
+            --primary-blue: #2563eb;
+            --primary-hover: #1d4ed8;
+            --header-bg: #1e293b;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --match-bg: #dcfce7;
+            --match-text: #166534;
+            --mismatch-bg: #fee2e2;
+            --mismatch-text: #991b1b;
+            --missing-bg: #ffedd5;
+            --missing-text: #9a3412;
+            --extra-bg: #dbeafe;
+            --extra-text: #1e40af;
+            --warning-bg: #fef3c7;
+            --warning-text: #b45309;
+            --warning-border: #fcd34d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.1rem;
+        }
+
+        /* Input Grid */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .input-card label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+            color: var(--primary-blue);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-card label span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            background-color: var(--bg-page);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            padding: 0.5rem;
+            font-family: "Consolas", "Courier New", Courier, monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-blue);
+            background-color: #fff;
+        }
+
+        /* Action Buttons */
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.825rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-card-subtle);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+            border: 1px solid var(--warning-border);
+        }
+
+        .btn-warning:hover {
+            background-color: #fef08a;
+        }
+
+        /* Metrics Summary Bar */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .summary-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .summary-card span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.1rem;
+        }
+
+        .summary-card strong {
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        .summary-card.matched strong { color: var(--match-text); }
+        .summary-card.mismatched strong { color: var(--mismatch-text); }
+        .summary-card.missing strong { color: var(--missing-text); }
+        .summary-card.extra strong { color: var(--extra-text); }
+        .summary-card.mapped strong { color: var(--primary-blue); }
+
+        /* Output Table Container */
+        .table-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: auto;
+            max-height: 600px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--header-bg);
+            color: white;
+            z-index: 10;
+        }
+
+        th {
+            padding: 0.5rem;
+            font-weight: 600;
+            border: 1px solid var(--border-dark);
+            font-size: 0.725rem;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        th span.sub-header {
+            display: block;
+            font-size: 0.65rem;
+            color: #cbd5e1;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        td {
+            padding: 0.45rem 0.5rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Status Badges */
+        .badge {
+            padding: 0.15rem 0.45rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .badge-match { background-color: var(--match-bg); color: var(--match-text); border: 1px solid #bbf7d0; }
+        .badge-mismatch { background-color: var(--mismatch-bg); color: var(--mismatch-text); border: 1px solid #fecaca; }
+        .badge-missing { background-color: var(--missing-bg); color: var(--missing-text); border: 1px solid #fed7aa; }
+        .badge-extra { background-color: var(--extra-bg); color: var(--extra-text); border: 1px solid #bfdbfe; }
+
+        .cell-match {
+            background-color: var(--match-bg);
+            color: var(--match-text);
+            font-weight: 500;
+        }
+
+        .cell-mismatch {
+            background-color: var(--mismatch-bg);
+            color: var(--mismatch-text);
+            font-weight: 700;
+        }
+
+        .team-cell {
+            text-align: left;
+            font-weight: 600;
+            padding-left: 0.6rem;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        .val-comparison {
+            font-family: "Consolas", "Courier New", Courier, monospace;
+            font-size: 0.775rem;
+            white-space: nowrap;
+            line-height: 1.3;
+        }
+
+        .empty-placeholder {
+            text-align: center;
+            padding: 2.5rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* Modal Styling */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(15, 23, 42, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            width: 90%;
+            max-width: 650px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-top-left-radius: 7px;
+            border-top-right-radius: 7px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+            background-color: var(--bg-page);
+            border-bottom-left-radius: 7px;
+            border-bottom-right-radius: 7px;
+        }
+
+        .mapping-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+        }
+
+        .mapping-table th {
+            background-color: var(--bg-card-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem;
+            text-align: left;
+        }
+
+        .mapping-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.4rem 0.5rem;
+            text-align: left;
+        }
+
+        select.mapping-select {
+            width: 100%;
+            padding: 0.35rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            font-size: 0.8rem;
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>🏆 England - Super League Standings Comparator</h1>
+            <p>Verification tool for RS3 vs Official Standings Data</p>
+        </div>
+    </header>
+
+    <!-- Input Section -->
+    <div class="input-grid">
+        <div class="input-card">
+            <label for="rs3Input">
+                RS3 Data 
+                <span>Format: Pos | Team | MP | W | D | L | SF | SA | P | Last 5</span>
+            </label>
+            <textarea id="rs3Input" placeholder="Paste RS3 data here..."></textarea>
+        </div>
+        <div class="input-card">
+            <label for="officialInput">
+                Official Data 
+                <span>Web-Copied Official Standings Text</span>
+            </label>
+            <textarea id="officialInput" placeholder="Paste Official data here..."></textarea>
+        </div>
+    </div>
+
+    <!-- Action Controls -->
+    <div class="controls">
+        <button class="btn btn-primary" onclick="processComparison()">⚡ Compare Data</button>
+        <button class="btn btn-warning" id="unmappedBtn" onclick="openTeamMappingPopupManual()">
+            🗺️ Unmapped Official Teams: <span id="unmappedCountText">0</span>
+        </button>
+        <button class="btn btn-secondary" onclick="openManageMappingsModal()">⚙️ Manage Saved Mappings</button>
+        <button class="btn btn-secondary" onclick="clearData()">🗑️ Clear</button>
+        <button class="btn btn-secondary" onclick="exportToExcel()">📊 Export Excel</button>
+        <button class="btn btn-secondary" onclick="copyResults()">📋 Copy Results</button>
+    </div>
+
+    <!-- Metrics Summary -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <span>Total Teams</span>
+            <strong id="metricTotal">0</strong>
+        </div>
+        <div class="summary-card matched">
+            <span>Matched</span>
+            <strong id="metricMatched">0</strong>
+        </div>
+        <div class="summary-card mismatched">
+            <span>Mismatched</span>
+            <strong id="metricMismatched">0</strong>
+        </div>
+        <div class="summary-card missing">
+            <span>Unmapped Official</span>
+            <strong id="metricMissing">0</strong>
+        </div>
+        <div class="summary-card extra">
+            <span>Extra In RS3</span>
+            <strong id="metricExtra">0</strong>
+        </div>
+        <div class="summary-card mapped">
+            <span>Firebase Mapped</span>
+            <strong id="metricMapped">0</strong>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="table-container">
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Position<span class="sub-header">(RS3 | Official)</span></th>
+                    <th style="text-align: left;">RS3 Team</th>
+                    <th style="text-align: left;">Official Team</th>
+                    <th>MP<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>W<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>D<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>L<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>SF<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>SA<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>Difference<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>Points<span class="sub-header">(RS3 | Official)</span></th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+                <tr>
+                    <td colspan="12" class="empty-placeholder">Paste data into the boxes above and click "Compare Data" to view results.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Dynamic Modal Container -->
+    <div id="modalContainer"></div>
+
+    <script>
+        // NORMALIZATION HELPER
+        function normalizeTeamName(name) {
+            if (!name) return "";
+            return name
+                .toLowerCase()
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // MANDATORY TEAM ALIASES
+        const TEAM_ALIASES = {
+            "warriors": "wigan warriors",
+            "wigan warriors": "wigan warriors",
+            "rhinos": "leeds rhinos",
+            "leeds rhinos": "leeds rhinos",
+            "wolves": "warrington wolves",
+            "warrington wolves": "warrington wolves",
+            "trinity": "wakefield trinity",
+            "wakefield trinity": "wakefield trinity",
+            "leopards": "leigh leopards",
+            "leigh leopards": "leigh leopards",
+            "robins": "hull kingston rovers",
+            "hull kingston rovers": "hull kingston rovers",
+            "saints": "st. helens",
+            "st. helens": "st. helens",
+            "st helens": "st. helens",
+            "dragons": "catalans dragons",
+            "catalans dragons": "catalans dragons",
+            "tigers": "castleford tigers",
+            "castleford tigers": "castleford tigers",
+            "toulouse": "toulouse olympique",
+            "toulouse olympique": "toulouse olympique",
+            "knights": "york knights",
+            "york knights": "york knights",
+            "hull fc": "hull fc",
+            "giants": "huddersfield giants",
+            "huddersfield giants": "huddersfield giants",
+            "bulls": "bradford bulls",
+            "bradford bulls": "bradford bulls"
+        };
+
+        // Initialize Firebase v8.10.1
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDaXsZls8nYshhETH249svHPmcAwuiH4w",
+            authDomain: "tablechecks-68698.firebaseapp.com",
+            projectId: "tablechecks-68698",
+            storageBucket: "tablechecks-68698.firebasestorage.app",
+            messagingSenderId: "406400003629",
+            appId: "1:406400003629:web:24dc3b10bdd6149008d2a4"
+        };
+
+        let db = null;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+        }
+
+        let savedMappings = new Map();
+        let lastUnmappedOfficialTeams = [];
+        let lastRs3TeamNames = [];
+        let currentResults = [];
+
+        async function loadFirestoreMappings() {
+            savedMappings.clear();
+            if (!db) return;
+            try {
+                const snapshot = await db.collection("teamMappings")
+                    .where("sport", "in", ["SuperLeague", "Rugby", "AFL"])
+                    .get();
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.officialTeam && data.rs3Team) {
+                        savedMappings.set(normalizeTeamName(data.officialTeam), data.rs3Team.trim());
+                    }
+                });
+                document.getElementById('metricMapped').textContent = savedMappings.size;
+            } catch (err) {
+                console.error("Error loading team mappings:", err);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFirestoreMappings();
+        });
+
+        function cleanInt(val) {
+            if (val === undefined || val === null || val === '') return null;
+            let str = String(val).replace(/\+/g, '').trim();
+            let parsed = parseInt(str, 10);
+            return isNaN(parsed) ? null : parsed;
+        }
+
+        function getCanonicalName(rawName) {
+            let normalized = normalizeTeamName(rawName);
+
+            if (TEAM_ALIASES[normalized]) {
+                return TEAM_ALIASES[normalized];
+            }
+
+            if (savedMappings.has(normalized)) {
+                return normalizeTeamName(savedMappings.get(normalized));
+            }
+
+            return normalized;
+        }
+
+        // RS3 PARSER
+        function parseRS3Data(rawText) {
+            if (!rawText || !rawText.trim()) return [];
+            const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            const records = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                if (line.includes('#') || (line.toLowerCase().includes('team') && line.toLowerCase().includes('mp'))) {
+                    continue;
+                }
+
+                let tokens = line.includes('\t') ? line.split('\t').map(t => t.trim()).filter(t => t.length > 0) :
+                             line.includes('|') ? line.split('|').map(t => t.trim()) :
+                             line.split(/\s+/).filter(t => t.length > 0);
+
+                if (tokens.length < 10) continue;
+
+                let pos = cleanInt(tokens[0]);
+                let teamName = tokens[1];
+                let mp = cleanInt(tokens[2]);
+                let w = cleanInt(tokens[3]);
+                let d = cleanInt(tokens[4]);
+                let l = cleanInt(tokens[5]);
+                let sf = cleanInt(tokens[6]);
+                let sa = cleanInt(tokens[7]);
+                let diff = cleanInt(tokens[8]);
+                let points = cleanInt(tokens[9]);
+
+                if (pos !== null && teamName) {
+                    records.push({
+                        position: pos,
+                        team: teamName,
+                        played: mp,
+                        wins: w,
+                        draws: d,
+                        losses: l,
+                        forPts: sf,
+                        againstPts: sa,
+                        diff: diff,
+                        points: points
+                    });
+                }
+            }
+
+            return records;
+        }
+
+        // OFFICIAL PARSER SPECIFIC FOR SUPER LEAGUE
+        function parseOfficialData(rawText) {
+            if (!rawText || !rawText.trim()) return [];
+
+            const IGNORE_TOKENS = new Set([
+                '2026', 'PLD', 'WINS', 'LST', 'DRN', 'PF', 'PA', 'DIF', 'PTS', 'FORM', 'NEXT UP'
+            ]);
+
+            const lines = rawText
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => {
+                    if (!line) return false;
+                    return !IGNORE_TOKENS.has(line.toUpperCase());
+                });
+
+            const teams = [];
+            const positionIndexes = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                if (/^\d+$/.test(lines[i])) {
+                    if (
+                        i + 1 < lines.length &&
+                        /[a-zA-Z]/.test(lines[i + 1]) &&
+                        !/^\d+$/.test(lines[i + 1])
+                    ) {
+                        positionIndexes.push(i);
+                    }
+                }
+            }
+
+            for (let i = 0; i < positionIndexes.length; i++) {
+                const start = positionIndexes[i];
+                const end =
+                    i < positionIndexes.length - 1
+                        ? positionIndexes[i + 1]
+                        : lines.length;
+
+                const position = parseInt(lines[start], 10);
+                let teamName = lines[start + 1];
+
+                const collectedNumbers = [];
+
+                for (let j = start + 2; j < end; j++) {
+                    const nums = lines[j].match(
+                        /[-+]?\d+(?:\.\d+)?/g
+                    );
+
+                    if (nums) {
+                        collectedNumbers.push(...nums);
+                    }
+                }
+
+                if (collectedNumbers.length < 8) {
+                    continue;
+                }
+
+                teams.push({
+                    position: position,
+                    team: teamName,
+                    played: parseInt(collectedNumbers[0], 10),
+                    wins: parseInt(collectedNumbers[1], 10),
+                    losses: parseInt(collectedNumbers[2], 10),
+                    draws: parseInt(collectedNumbers[3], 10),
+                    forPts: parseInt(collectedNumbers[4], 10),
+                    againstPts: parseInt(collectedNumbers[5], 10),
+                    diff: parseInt(collectedNumbers[6], 10),
+                    points: parseInt(collectedNumbers[7], 10)
+                });
+            }
+
+            return teams;
+        }
+
+        // COMPARISON PIPELINE
+        async function processComparison() {
+            await loadFirestoreMappings();
+
+            const rs3Raw = document.getElementById('rs3Input').value;
+            const officialRaw = document.getElementById('officialInput').value;
+
+            const rs3List = parseRS3Data(rs3Raw);
+            const officialList = parseOfficialData(officialRaw);
+
+            if (rs3List.length === 0 && officialList.length === 0) {
+                alert("Please provide valid input data for comparison.");
+                return;
+            }
+
+            const officialDict = new Map();
+            officialList.forEach(off => {
+                const canonicalKey = getCanonicalName(off.team);
+                officialDict.set(canonicalKey, off);
+            });
+
+            lastRs3TeamNames = rs3List.map(r => r.team);
+            lastUnmappedOfficialTeams = [];
+
+            let matchedCount = 0;
+            let mismatchedCount = 0;
+            let extraInRs3Count = 0;
+            let missingInRs3Count = 0;
+
+            const matchedOfficialKeys = new Set();
+            currentResults = [];
+
+            rs3List.forEach(rs3 => {
+                const normalizedRs3Name = getCanonicalName(rs3.team);
+
+                if (officialDict.has(normalizedRs3Name)) {
+                    const off = officialDict.get(normalizedRs3Name);
+                    const normalizedOfficialName = getCanonicalName(off.team);
+
+                    matchedOfficialKeys.add(normalizedOfficialName);
+
+                    const isPosMatch = rs3.position === off.position;
+                    const isPlayedMatch = rs3.played === off.played;
+                    const isWinsMatch = rs3.wins === off.wins;
+                    const isDrawsMatch = rs3.draws === off.draws;
+                    const isLossesMatch = rs3.losses === off.losses;
+                    const isForMatch = rs3.forPts === off.forPts;
+                    const isAgainstMatch = rs3.againstPts === off.againstPts;
+                    const isDiffMatch = rs3.diff === off.diff;
+                    const isPointsMatch = rs3.points === off.points;
+
+                    const allMatched = isPosMatch && isPlayedMatch && isWinsMatch && isDrawsMatch && 
+                                       isLossesMatch && isForMatch && isAgainstMatch && isDiffMatch && isPointsMatch;
+
+                    if (allMatched) {
+                        matchedCount++;
+                    } else {
+                        mismatchedCount++;
+                    }
+
+                    currentResults.push({
+                        pos: { rs3: rs3.position, off: off.position, match: isPosMatch },
+                        rs3Team: rs3.team,
+                        offTeam: off.team,
+                        played: { rs3: rs3.played, off: off.played, match: isPlayedMatch },
+                        wins: { rs3: rs3.wins, off: off.wins, match: isWinsMatch },
+                        draws: { rs3: rs3.draws, off: off.draws, match: isDrawsMatch },
+                        losses: { rs3: rs3.losses, off: off.losses, match: isLossesMatch },
+                        forPts: { rs3: rs3.forPts, off: off.forPts, match: isForMatch },
+                        againstPts: { rs3: rs3.againstPts, off: off.againstPts, match: isAgainstMatch },
+                        difference: {
+                            rs3: rs3.diff,
+                            off: off.diff,
+                            match: rs3.diff === off.diff
+                        },
+                        points: {
+                            rs3: rs3.points,
+                            off: off.points,
+                            match: rs3.points === off.points
+                        },
+                        status: allMatched ? 'MATCH' : 'MISMATCH'
+                    });
+                } else {
+                    extraInRs3Count++;
+                    currentResults.push({
+                        pos: { rs3: rs3.position, off: '-' },
+                        rs3Team: rs3.team,
+                        offTeam: 'Not Found',
+                        played: { rs3: rs3.played, off: '-' },
+                        wins: { rs3: rs3.wins, off: '-' },
+                        draws: { rs3: rs3.draws, off: '-' },
+                        losses: { rs3: rs3.losses, off: '-' },
+                        forPts: { rs3: rs3.forPts, off: '-' },
+                        againstPts: { rs3: rs3.againstPts, off: '-' },
+                        difference: { rs3: rs3.diff, off: '-', match: false },
+                        points: { rs3: rs3.points, off: '-', match: false },
+                        status: 'EXTRA IN RS3'
+                    });
+                }
+            });
+
+            officialList.forEach(off => {
+                const canonicalKey = getCanonicalName(off.team);
+                if (!matchedOfficialKeys.has(canonicalKey)) {
+                    missingInRs3Count++;
+                    lastUnmappedOfficialTeams.push(off.team);
+
+                    currentResults.push({
+                        pos: { rs3: '-', off: off.position },
+                        rs3Team: 'Not Found',
+                        offTeam: off.team,
+                        played: { rs3: '-', off: off.played },
+                        wins: { rs3: '-', off: off.wins },
+                        draws: { rs3: '-', off: off.draws },
+                        losses: { rs3: '-', off: off.losses },
+                        forPts: { rs3: '-', off: off.forPts },
+                        againstPts: { rs3: '-', off: off.againstPts },
+                        difference: { rs3: '-', off: off.diff, match: false },
+                        points: { rs3: '-', off: off.points, match: false },
+                        status: 'UNMAPPED OFFICIAL'
+                    });
+                }
+            });
+
+            document.getElementById('unmappedCountText').textContent = lastUnmappedOfficialTeams.length;
+            document.getElementById('metricTotal').textContent = currentResults.length;
+            document.getElementById('metricMatched').textContent = matchedCount;
+            document.getElementById('metricMismatched').textContent = mismatchedCount;
+            document.getElementById('metricMissing').textContent = missingInRs3Count;
+            document.getElementById('metricExtra').textContent = extraInRs3Count;
+            document.getElementById('metricMapped').textContent = savedMappings.size;
+
+            renderTable(currentResults);
+        }
+
+        function renderTable(results) {
+            const resultsBody = document.getElementById('resultsBody');
+            if (results.length === 0) {
+                resultsBody.innerHTML = `<tr><td colspan="12" class="empty-placeholder">No comparison records generated.</td></tr>`;
+                return;
+            }
+
+            let html = '';
+            results.forEach(row => {
+                const badgeClass = row.status === 'MATCH' ? 'badge-match' :
+                                   row.status === 'MISMATCH' ? 'badge-mismatch' :
+                                   row.status === 'UNMAPPED OFFICIAL' ? 'badge-missing' : 'badge-extra';
+
+                if (row.status === 'EXTRA IN RS3') {
+                    html += `
+                        <tr>
+                            <td class="val-comparison">${row.pos.rs3} | -</td>
+                            <td class="team-cell">${row.rs3Team}</td>
+                            <td class="team-cell" style="color:var(--text-muted); font-style:italic;">${row.offTeam}</td>
+                            <td class="val-comparison">${row.played.rs3} | -</td>
+                            <td class="val-comparison">${row.wins.rs3} | -</td>
+                            <td class="val-comparison">${row.draws.rs3} | -</td>
+                            <td class="val-comparison">${row.losses.rs3} | -</td>
+                            <td class="val-comparison">${row.forPts.rs3} | -</td>
+                            <td class="val-comparison">${row.againstPts.rs3} | -</td>
+                            <td class="val-comparison">${row.difference.rs3} | -</td>
+                            <td class="val-comparison">${row.points.rs3} | -</td>
+                            <td><span class="badge ${badgeClass}">${row.status}</span></td>
+                        </tr>
+                    `;
+                } else if (row.status === 'UNMAPPED OFFICIAL') {
+                    html += `
+                        <tr>
+                            <td class="val-comparison">- | ${row.pos.off}</td>
+                            <td class="team-cell" style="color:var(--text-muted); font-style:italic;">${row.rs3Team}</td>
+                            <td class="team-cell">${row.offTeam}</td>
+                            <td class="val-comparison">- | ${row.played.off}</td>
+                            <td class="val-comparison">- | ${row.wins.off}</td>
+                            <td class="val-comparison">- | ${row.draws.off}</td>
+                            <td class="val-comparison">- | ${row.losses.off}</td>
+                            <td class="val-comparison">- | ${row.forPts.off}</td>
+                            <td class="val-comparison">- | ${row.againstPts.off}</td>
+                            <td class="val-comparison">- | ${row.difference.off}</td>
+                            <td class="val-comparison">- | ${row.points.off}</td>
+                            <td><span class="badge ${badgeClass}">${row.status}</span></td>
+                        </tr>
+                    `;
+                } else {
+                    html += `
+                        <tr>
+                            <td class="${row.pos.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.pos.rs3} | ${row.pos.off}</td>
+                            <td class="team-cell">${row.rs3Team}</td>
+                            <td class="team-cell">${row.offTeam}</td>
+                            <td class="${row.played.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.played.rs3} | ${row.played.off}</td>
+                            <td class="${row.wins.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.wins.rs3} | ${row.wins.off}</td>
+                            <td class="${row.draws.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.draws.rs3} | ${row.draws.off}</td>
+                            <td class="${row.losses.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.losses.rs3} | ${row.losses.off}</td>
+                            <td class="${row.forPts.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.forPts.rs3} | ${row.forPts.off}</td>
+                            <td class="${row.againstPts.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.againstPts.rs3} | ${row.againstPts.off}</td>
+                            <td class="${row.difference.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.difference.rs3} | ${row.difference.off}</td>
+                            <td class="${row.points.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.points.rs3} | ${row.points.off}</td>
+                            <td><span class="badge ${badgeClass}">${row.status}</span></td>
+                        </tr>
+                    `;
+                }
+            });
+
+            resultsBody.innerHTML = html;
+        }
+
+        function openTeamMappingPopupManual() {
+            if (lastUnmappedOfficialTeams.length === 0) {
+                alert("No unmapped official teams require attention. All teams have been matched automatically via TEAM_ALIASES or saved Firebase mappings.");
+                return;
+            }
+
+            const container = document.getElementById('modalContainer');
+
+            let optionsHtml = '<option value="">-- Select RS3 Team --</option>';
+            lastRs3TeamNames.forEach(team => {
+                optionsHtml += `<option value="${team}">${team}</option>`;
+            });
+
+            let rowsHtml = '';
+            lastUnmappedOfficialTeams.forEach((offTeam, index) => {
+                rowsHtml += `
+                    <tr>
+                        <td><strong>${offTeam}</strong></td>
+                        <td>
+                            <select class="mapping-select" id="map_select_${index}" data-off="${offTeam}">
+                                ${optionsHtml}
+                            </select>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            container.innerHTML = `
+                <div class="modal-backdrop">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3>TEAM MAPPING REQUIRED</h3>
+                            <button onclick="closeModal()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem;">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <p style="font-size:0.85rem; color: var(--text-muted); margin-bottom:0.5rem;">
+                                Select matching RS3 target teams for unknown Official entries. These mappings will be saved to Firebase permanently.
+                            </p>
+                            <table class="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Official Team</th>
+                                        <th>Target RS3 Team</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveNewMappings(${lastUnmappedOfficialTeams.length})">Save to Firebase & Re-Compare</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function saveNewMappings(count) {
+            if (!db) {
+                alert("Firestore DB connection unavailable.");
+                closeModal();
+                return;
+            }
+
+            const batch = db.batch();
+            let savedCount = 0;
+
+            for (let i = 0; i < count; i++) {
+                const selectElem = document.getElementById(`map_select_${i}`);
+                if (selectElem && selectElem.value) {
+                    const officialTeam = selectElem.getAttribute('data-off');
+                    const rs3Team = selectElem.value;
+
+                    const docRef = db.collection("teamMappings").doc();
+                    batch.set(docRef, {
+                        sport: "SuperLeague",
+                        competition: "England - Super League",
+                        officialTeam: officialTeam,
+                        rs3Team: rs3Team,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    savedMappings.set(normalizeTeamName(officialTeam), rs3Team.trim());
+                    savedCount++;
+                }
+            }
+
+            if (savedCount > 0) {
+                try {
+                    await batch.commit();
+                    document.getElementById('metricMapped').textContent = savedMappings.size;
+                } catch (e) {
+                    console.error("Error saving mappings to Firestore:", e);
+                }
+            }
+
+            closeModal();
+            processComparison();
+        }
+
+        async function openManageMappingsModal() {
+            await loadFirestoreMappings();
+
+            const container = document.getElementById('modalContainer');
+            let rowsHtml = '';
+
+            if (savedMappings.size === 0) {
+                rowsHtml = `<tr><td colspan="3" style="text-align:center; padding: 1.5rem; color: var(--text-muted);">No custom saved team mappings stored in Firebase.</td></tr>`;
+            } else {
+                let idx = 0;
+                for (let [offNorm, rs3Name] of savedMappings.entries()) {
+                    rowsHtml += `
+                        <tr id="manage_row_${idx}">
+                            <td>${offNorm}</td>
+                            <td>${rs3Name}</td>
+                            <td>
+                                <button class="btn btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.7rem; color:var(--mismatch-text);" onclick="deleteMapping('${offNorm}', ${idx})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                    idx++;
+                }
+            }
+
+            container.innerHTML = `
+                <div class="modal-backdrop">
+                    <div class="modal">
+                        <div class="modal-header">
+                            <h3>Manage Firebase Saved Mappings</h3>
+                            <button onclick="closeModal()" style="background:none; border:none; color:white; cursor:pointer; font-size:1.1rem;">✕</button>
+                        </div>
+                        <div class="modal-body">
+                            <table class="mapping-table">
+                                <thead>
+                                    <tr>
+                                        <th>Official Team (Normalized)</th>
+                                        <th>RS3 Team Target</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="openManageMappingsModal()">Refresh Mappings</button>
+                            <button class="btn btn-primary" onclick="closeModal()">Close</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function deleteMapping(officialTeamNormalized, rowIdx) {
+            if (!db) return;
+            try {
+                const snapshot = await db.collection("teamMappings")
+                    .where("sport", "in", ["SuperLeague", "Rugby", "AFL"])
+                    .get();
+
+                const batch = db.batch();
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.officialTeam && normalizeTeamName(data.officialTeam) === officialTeamNormalized) {
+                        batch.delete(doc.ref);
+                    }
+                });
+
+                await batch.commit();
+                savedMappings.delete(officialTeamNormalized);
+
+                const rowElem = document.getElementById(`manage_row_${rowIdx}`);
+                if (rowElem) rowElem.remove();
+
+                document.getElementById('metricMapped').textContent = savedMappings.size;
+                processComparison();
+            } catch (err) {
+                console.error("Error deleting mapping:", err);
+                alert("Failed to delete mapping.");
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modalContainer').innerHTML = '';
+        }
+
+        function clearData() {
+            document.getElementById('rs3Input').value = '';
+            document.getElementById('officialInput').value = '';
+            document.getElementById('resultsBody').innerHTML = `<tr><td colspan="12" class="empty-placeholder">Paste data into the boxes above and click "Compare Data" to view results.</td></tr>`;
+
+            document.getElementById('metricTotal').textContent = '0';
+            document.getElementById('metricMatched').textContent = '0';
+            document.getElementById('metricMismatched').textContent = '0';
+            document.getElementById('metricMissing').textContent = '0';
+            document.getElementById('metricExtra').textContent = '0';
+            document.getElementById('unmappedCountText').textContent = '0';
+
+            lastUnmappedOfficialTeams = [];
+            lastRs3TeamNames = [];
+            currentResults = [];
+        }
+
+        function exportToExcel() {
+            if (currentResults.length === 0) {
+                alert("No comparison results available to export.");
+                return;
+            }
+
+            const exportData = currentResults.map(row => {
+                return {
+                    "Position (RS3 | Official)": `${row.pos.rs3} | ${row.pos.off}`,
+                    "RS3 Team": row.rs3Team,
+                    "Official Team": row.offTeam,
+                    "MP (RS3 | Official)": `${row.played.rs3} | ${row.played.off}`,
+                    "W (RS3 | Official)": `${row.wins.rs3} | ${row.wins.off}`,
+                    "D (RS3 | Official)": `${row.draws.rs3} | ${row.draws.off}`,
+                    "L (RS3 | Official)": `${row.losses.rs3} | ${row.losses.off}`,
+                    "SF (RS3 | Official)": `${row.forPts.rs3} | ${row.forPts.off}`,
+                    "SA (RS3 | Official)": `${row.againstPts.rs3} | ${row.againstPts.off}`,
+                    "Difference (RS3 | Official)": `${row.difference.rs3} | ${row.difference.off}`,
+                    "Points (RS3 | Official)": `${row.points.rs3} | ${row.points.off}`,
+                    "Status": row.status
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "SuperLeague_Comparison");
+            XLSX.writeFile(workbook, "Super_League_Table_Comparison.xlsx");
+        }
+
+        function copyResults() {
+            if (currentResults.length === 0) {
+                alert("No results to copy.");
+                return;
+            }
+
+            let text = "Position\tRS3 Team\tOfficial Team\tMP\tW\tD\tL\tSF\tSA\tDifference\tPoints\tStatus\n";
+            currentResults.forEach(row => {
+                text += `${row.pos.rs3}|${row.pos.off}\t${row.rs3Team}\t${row.offTeam}\t${row.played.rs3}|${row.played.off}\t${row.wins.rs3}|${row.wins.off}\t${row.draws.rs3}|${row.draws.off}\t${row.losses.rs3}|${row.losses.off}\t${row.forPts.rs3}|${row.forPts.off}\t${row.againstPts.rs3}|${row.againstPts.off}\t${row.difference.rs3}|${row.difference.off}\t${row.points.rs3}|${row.points.off}\t${row.status}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Comparison results copied to clipboard!");
+            }).catch(err => {
+                alert("Failed to copy results: " + err);
+            });
+        }
+    </script>
+</body>
+</html>
