@@ -1,66 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sports Table Check Tools</title>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <style>
 body{
-    font-family:Arial,sans-serif;
+    font-family:Arial;
     background:#f2f2f2;
     margin:0;
-    padding:0;
+    padding:20px;
+    text-align:center;
+}
+h1{
+    color:#004a99;
 }
 
 .container{
     max-width:1000px;
-    margin:40px auto;
-    text-align:center;
+    margin:auto;
 }
 
-h1{
-    color:#004a99;
-    margin-bottom:30px;
-}
-
-.card{
-    background:#fff;
-    border-radius:10px;
-    padding:20px;
-    margin-bottom:20px;
-    box-shadow:0 2px 10px rgba(0,0,0,.15);
-}
-
-.sport{
-    font-size:24px;
-    font-weight:bold;
-    color:#004a99;
-    margin-bottom:15px;
-}
-
-.country{
-    font-size:18px;
-    font-weight:bold;
-    margin-top:15px;
-    color:#333;
-}
-
-.comp{
+.btn{
     display:block;
-    width:350px;
+    width:500px;
     margin:10px auto;
     padding:15px;
     background:#0074e8;
-    color:#fff;
+    color:white;
     text-decoration:none;
+    border:none;
     border-radius:8px;
+    cursor:pointer;
     font-size:16px;
-    transition:.2s;
 }
 
-.comp:hover{
+.btn:hover{
     background:#005bbd;
+}
+
+.backBtn{
+    background:#c00;
+}
+
+.adminBtn{
+    background:#009944;
+}
+
+.hidden{
+    display:none;
+}
+
+#loginPopup,
+#addPopup{
+    position:fixed;
+    left:0;
+    top:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.5);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.popupBox{
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    width:400px;
+}
+input{
+    width:95%;
+    padding:10px;
+    margin:5px;
 }
 </style>
 </head>
@@ -71,19 +87,257 @@ h1{
 
 <h1>Sports Table Check Tools</h1>
 
-<div class="card">
+<button id="adminButton" class="btn adminBtn" onclick="showLogin()">
+ADMIN LOGIN
+</button>
 
-<div class="sport">🏉 Rugby</div>
+<div id="sportsPage"></div>
 
-<div class="country">Australia</div>
+<div id="countryPage" class="hidden">
+    <h2 id="sportTitle"></h2>
+    <div id="countryList"></div>
+    <button class="btn backBtn" onclick="backSports()">Back</button>
+</div>
 
-<a class="comp" href="nrl_table_check.html">
-    National Rugby League
-</a>
+<div id="competitionPage" class="hidden">
+    <h2 id="countryTitle"></h2>
+    <div id="competitionList"></div>
+    <button class="btn backBtn" onclick="backCountries()">Back</button>
+</div>
+
+</div>
+
+<script>
+
+/* FIREBASE */
+
+const firebaseConfig = {
+ apiKey: "YOUR_API_KEY",
+ authDomain: "YOUR_PROJECT.firebaseapp.com",
+ projectId: "YOUR_PROJECT",
+ storageBucket: "YOUR_PROJECT.appspot.com",
+ messagingSenderId: "XXXX",
+ appId: "XXXX"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+
+/* DATA */
+
+let allData = [];
+let currentSport = "";
+let currentCountry = "";
+
+/* LOAD */
+
+async function loadCompetitions(){
+
+    const snap = await db.collection("tableChecks")
+                         .where("active","==",true)
+                         .get();
+
+    allData = [];
+
+    snap.forEach(doc=>{
+        allData.push(doc.data());
+    });
+
+    loadSports();
+}
+
+function loadSports(){
+
+    const sports = [...new Set(allData.map(x=>x.sport))];
+
+    let html = "";
+
+    sports.sort().forEach(s=>{
+
+        html += `
+        <button class="btn"
+        onclick="showCountries('${s}')">
+        ${s}
+        </button>`;
+    });
+
+    document.getElementById("sportsPage").innerHTML = html;
+}
+
+/* SPORT */
+
+function showCountries(sport){
+
+    currentSport = sport;
+
+    document.getElementById("sportsPage").classList.add("hidden");
+    document.getElementById("countryPage").classList.remove("hidden");
+
+    document.getElementById("sportTitle").innerHTML = sport;
+
+    const countries = [...new Set(
+        allData
+        .filter(x=>x.sport===sport)
+        .map(x=>x.country)
+    )];
+
+    let html = "";
+
+    countries.sort().forEach(c=>{
+
+        html += `
+        <button class="btn"
+        onclick="showCompetitions('${c}')">
+        ${c}
+        </button>`;
+    });
+
+    document.getElementById("countryList").innerHTML = html;
+}
+
+/* COUNTRY */
+
+function showCompetitions(country){
+
+    currentCountry = country;
+
+    document.getElementById("countryPage").classList.add("hidden");
+    document.getElementById("competitionPage").classList.remove("hidden");
+
+    document.getElementById("countryTitle").innerHTML = country;
+
+    let html = "";
+
+    allData
+    .filter(x=>x.sport===currentSport &&
+               x.country===country)
+    .forEach(c=>{
+
+        html += `
+        <a class="btn"
+           href="${c.file}">
+           ${c.country} - ${c.competition}
+        </a>`;
+    });
+
+    document.getElementById("competitionList").innerHTML = html;
+}
+
+function backSports(){
+
+    document.getElementById("countryPage").classList.add("hidden");
+    document.getElementById("sportsPage").classList.remove("hidden");
+}
+
+function backCountries(){
+
+    document.getElementById("competitionPage").classList.add("hidden");
+    document.getElementById("countryPage").classList.remove("hidden");
+}
+
+/* ADMIN */
+
+function showLogin(){
+
+document.body.insertAdjacentHTML("beforeend",`
+
+<div id="loginPopup">
+
+<div class="popupBox">
+
+<h2>Admin Login</h2>
+
+<input id="u" placeholder="Username">
+<input id="p" type="password" placeholder="Password">
+
+<button class="btn adminBtn" onclick="adminLogin()">
+LOGIN
+</button>
+
+</div>
+</div>
+
+`);
+}
+
+function adminLogin(){
+
+const u=document.getElementById("u").value;
+const p=document.getElementById("p").value;
+
+if(u==="OSED" && p==="OSED@1234"){
+
+document.getElementById("loginPopup").remove();
+
+showAddCompetition();
+
+}else{
+
+alert("Invalid Login");
+
+}
+}
+
+function showAddCompetition(){
+
+document.body.insertAdjacentHTML("beforeend",`
+
+<div id="addPopup">
+
+<div class="popupBox">
+
+<h2>Add Competition</h2>
+
+<input id="sport" placeholder="Sport">
+<input id="country" placeholder="Country">
+<input id="competition" placeholder="Competition">
+<input id="file" placeholder="HTML File">
+
+<button class="btn adminBtn"
+onclick="saveCompetition()">
+
+SAVE
+
+</button>
 
 </div>
 
 </div>
+
+`);
+}
+
+async function saveCompetition(){
+
+const data={
+
+sport:document.getElementById("sport").value.trim(),
+
+country:document.getElementById("country").value.trim(),
+
+competition:document.getElementById("competition").value.trim(),
+
+file:document.getElementById("file").value.trim(),
+
+active:true
+
+};
+
+await db.collection("tableChecks").add(data);
+
+alert("Competition Saved");
+
+document.getElementById("addPopup").remove();
+
+loadCompetitions();
+}
+
+/* START */
+
+loadCompetitions();
+
+</script>
 
 </body>
 </html>
