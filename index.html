@@ -1,343 +1,967 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Sports Table Check Tools</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Table Check Portal</title>
+    
+    <!-- Firebase SDK (v8.10.1) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        :root {
+            --primary-blue: #1e3a8a;
+            --secondary-blue: #3b82f6;
+            --hover-blue: #2563eb;
+            --light-blue: #eff6ff;
+            --accent-blue: #60a5fa;
+            --dark-gray: #1f2937;
+            --light-gray: #f3f4f6;
+            --text-muted: #6b7280;
+            --white: #ffffff;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition: all 0.25s ease-in-out;
+        }
 
-<style>
-body{
-    font-family:Arial;
-    background:#f2f2f2;
-    margin:0;
-    padding:20px;
-    text-align:center;
-}
-h1{
-    color:#004a99;
-}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
 
-.container{
-    max-width:1000px;
-    margin:auto;
-}
+        body {
+            background-color: #f8fafc;
+            color: var(--dark-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
 
-.btn{
-    display:block;
-    width:500px;
-    margin:10px auto;
-    padding:15px;
-    background:#0074e8;
-    color:white;
-    text-decoration:none;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:16px;
-}
+        /* Header & Navigation */
+        header {
+            background-color: var(--primary-blue);
+            color: var(--white);
+            padding: 1.25rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
 
-.btn:hover{
-    background:#005bbd;
-}
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-.backBtn{
-    background:#c00;
-}
+        .logo-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+        }
 
-.adminBtn{
-    background:#009944;
-}
+        .admin-btn {
+            background-color: transparent;
+            border: 1.5px solid var(--accent-blue);
+            color: var(--white);
+            padding: 0.5rem 1.25rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
 
-.hidden{
-    display:none;
-}
+        .admin-btn:hover {
+            background-color: var(--secondary-blue);
+            border-color: var(--secondary-blue);
+        }
 
-#loginPopup,
-#addPopup{
-    position:fixed;
-    left:0;
-    top:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,.5);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-}
+        /* Container & Hero Section */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            flex: 1;
+            width: 100%;
+        }
 
-.popupBox{
-    background:white;
-    padding:25px;
-    border-radius:10px;
-    width:400px;
-}
-input{
-    width:95%;
-    padding:10px;
-    margin:5px;
-}
-</style>
+        /* Metrics Section */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--white);
+            padding: 1.25rem;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--secondary-blue);
+        }
+
+        .metric-card span {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-card strong {
+            font-size: 1.75rem;
+            color: var(--primary-blue);
+        }
+
+        /* Search Section */
+        .search-container {
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+            background-color: var(--white);
+        }
+
+        .search-input:focus {
+            border-color: var(--secondary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        /* Controls / Breadcrumb Header */
+        .view-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            min-height: 42px;
+        }
+
+        .breadcrumb {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .back-btn {
+            background-color: var(--light-blue);
+            color: var(--secondary-blue);
+            border: 1px solid var(--accent-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .back-btn:hover {
+            background-color: var(--secondary-blue);
+            color: var(--white);
+        }
+
+        /* Responsive Grid & Cards */
+        .portal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background-color: var(--white);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+            border-color: var(--accent-blue);
+        }
+
+        .card-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--dark-gray);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            word-break: break-word;
+        }
+
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .card-action {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--secondary-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* Empty / Status States */
+        .status-message {
+            text-align: center;
+            padding: 4rem 1rem;
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            grid-column: 1 / -1;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background-color: var(--white);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 480px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+            position: relative;
+            transform: translateY(10px);
+            transition: transform 0.25s ease;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            color: var(--primary-blue);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--dark-gray);
+            margin-bottom: 0.35rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            border-color: var(--secondary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--secondary-blue);
+            color: var(--white);
+            border: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 0.5rem;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--hover-blue);
+        }
+
+        .alert-box {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-box.error {
+            background-color: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .alert-box.success {
+            background-color: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            border-top: 1px solid #e2e8f0;
+            background-color: var(--white);
+            margin-top: auto;
+        }
+
+        /* Utility */
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 640px) {
+            header {
+                padding: 1rem;
+            }
+            main {
+                padding: 1rem;
+            }
+            .portal-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
-
-<h1>Sports Table Check Tools</h1>
-
-<button id="adminButton" class="btn adminBtn" onclick="showLogin()">
-ADMIN LOGIN
-</button>
-
-<div id="sportsPage"></div>
-
-<div id="countryPage" class="hidden">
-    <h2 id="sportTitle"></h2>
-    <div id="countryList"></div>
-    <button class="btn backBtn" onclick="backSports()">Back</button>
-</div>
-
-<div id="competitionPage" class="hidden">
-    <h2 id="countryTitle"></h2>
-    <div id="competitionList"></div>
-    <button class="btn backBtn" onclick="backCountries()">Back</button>
-</div>
-
-</div>
-
-<script>
-
-/* FIREBASE */
-
-const firebaseConfig = {
- apiKey: "YOUR_API_KEY",
- authDomain: "YOUR_PROJECT.firebaseapp.com",
- projectId: "YOUR_PROJECT",
- storageBucket: "YOUR_PROJECT.appspot.com",
- messagingSenderId: "XXXX",
- appId: "XXXX"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const db = firebase.firestore();
-
-/* DATA */
-
-let allData = [];
-let currentSport = "";
-let currentCountry = "";
-
-/* LOAD */
-
-async function loadCompetitions(){
-
-    const snap = await db.collection("tableChecks")
-                         .where("active","==",true)
-                         .get();
-
-    allData = [];
-
-    snap.forEach(doc=>{
-        allData.push(doc.data());
-    });
-
-    loadSports();
-}
-
-function loadSports(){
-
-    const sports = [...new Set(allData.map(x=>x.sport))];
-
-    let html = "";
-
-    sports.sort().forEach(s=>{
-
-        html += `
-        <button class="btn"
-        onclick="showCountries('${s}')">
-        ${s}
-        </button>`;
-    });
-
-    document.getElementById("sportsPage").innerHTML = html;
-}
-
-/* SPORT */
-
-function showCountries(sport){
-
-    currentSport = sport;
-
-    document.getElementById("sportsPage").classList.add("hidden");
-    document.getElementById("countryPage").classList.remove("hidden");
-
-    document.getElementById("sportTitle").innerHTML = sport;
-
-    const countries = [...new Set(
-        allData
-        .filter(x=>x.sport===sport)
-        .map(x=>x.country)
-    )];
-
-    let html = "";
-
-    countries.sort().forEach(c=>{
-
-        html += `
-        <button class="btn"
-        onclick="showCompetitions('${c}')">
-        ${c}
-        </button>`;
-    });
-
-    document.getElementById("countryList").innerHTML = html;
-}
-
-/* COUNTRY */
-
-function showCompetitions(country){
-
-    currentCountry = country;
-
-    document.getElementById("countryPage").classList.add("hidden");
-    document.getElementById("competitionPage").classList.remove("hidden");
-
-    document.getElementById("countryTitle").innerHTML = country;
-
-    let html = "";
-
-    allData
-    .filter(x=>x.sport===currentSport &&
-               x.country===country)
-    .forEach(c=>{
-
-        html += `
-        <a class="btn"
-           href="${c.file}">
-           ${c.country} - ${c.competition}
-        </a>`;
-    });
-
-    document.getElementById("competitionList").innerHTML = html;
-}
-
-function backSports(){
-
-    document.getElementById("countryPage").classList.add("hidden");
-    document.getElementById("sportsPage").classList.remove("hidden");
-}
-
-function backCountries(){
-
-    document.getElementById("competitionPage").classList.add("hidden");
-    document.getElementById("countryPage").classList.remove("hidden");
-}
-
-/* ADMIN */
-
-function showLogin(){
-
-document.body.insertAdjacentHTML("beforeend",`
-
-<div id="loginPopup">
-
-<div class="popupBox">
-
-<h2>Admin Login</h2>
-
-<input id="u" placeholder="Username">
-<input id="p" type="password" placeholder="Password">
-
-<button class="btn adminBtn" onclick="adminLogin()">
-LOGIN
-</button>
-
-</div>
-</div>
-
-`);
-}
-
-function adminLogin(){
-
-const u=document.getElementById("u").value;
-const p=document.getElementById("p").value;
-
-if(u==="OSED" && p==="OSED@1234"){
-
-document.getElementById("loginPopup").remove();
-
-showAddCompetition();
-
-}else{
-
-alert("Invalid Login");
-
-}
-}
-
-function showAddCompetition(){
-
-document.body.insertAdjacentHTML("beforeend",`
-
-<div id="addPopup">
-
-<div class="popupBox">
-
-<h2>Add Competition</h2>
-
-<input id="sport" placeholder="Sport">
-<input id="country" placeholder="Country">
-<input id="competition" placeholder="Competition">
-<input id="file" placeholder="HTML File">
-
-<button class="btn adminBtn"
-onclick="saveCompetition()">
-
-SAVE
-
-</button>
-
-</div>
-
-</div>
-
-`);
-}
-
-async function saveCompetition(){
-
-const data={
-
-sport:document.getElementById("sport").value.trim(),
-
-country:document.getElementById("country").value.trim(),
-
-competition:document.getElementById("competition").value.trim(),
-
-file:document.getElementById("file").value.trim(),
-
-active:true
-
-};
-
-await db.collection("tableChecks").add(data);
-
-alert("Competition Saved");
-
-document.getElementById("addPopup").remove();
-
-loadCompetitions();
-}
-
-/* START */
-
-loadCompetitions();
-
-</script>
-
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-title">
+                <h1>Sports Table Check Portal</h1>
+            </div>
+            <button class="admin-btn" id="adminToggleBtn" onclick="openLoginModal()">Admin Login</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main>
+        <!-- Metrics -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <span>Sports</span>
+                <strong id="metricSports">0</strong>
+            </div>
+            <div class="metric-card">
+                <span>Countries</span>
+                <strong id="metricCountries">0</strong>
+            </div>
+            <div class="metric-card">
+                <span>Competitions</span>
+                <strong id="metricCompetitions">0</strong>
+            </div>
+        </section>
+
+        <!-- Search Bar -->
+        <section class="search-container">
+            <input 
+                type="text" 
+                id="searchInput" 
+                class="search-input" 
+                placeholder="Search sports, countries, or competitions..." 
+                oninput="handleSearch()"
+            >
+        </section>
+
+        <!-- View Navigation Header -->
+        <div class="view-controls">
+            <div class="breadcrumb" id="breadcrumb">
+                <span>Sports</span>
+            </div>
+            <button class="back-btn hidden" id="backBtn" onclick="navigateBack()">
+                ← Back
+            </button>
+        </div>
+
+        <!-- Main Display Grid -->
+        <section class="portal-grid" id="portalGrid">
+            <div class="status-message">Loading data from database...</div>
+        </section>
+    </main>
+
+    <!-- Admin Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Admin Authentication</h2>
+                <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
+            </div>
+            <div id="loginAlert" class="alert-box"></div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginUser">Username</label>
+                    <input type="text" id="loginUser" class="form-control" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPass">Password</label>
+                    <input type="password" id="loginPass" class="form-control" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="submit-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Competition Modal -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Add Competition</h2>
+                <button class="close-btn" onclick="closeModal('adminModal')">&times;</button>
+            </div>
+            <div id="adminAlert" class="alert-box"></div>
+            <form onsubmit="handleAddCompetition(event)">
+                <div class="form-group">
+                    <label for="addSport">Sport Name</label>
+                    <input type="text" id="addSport" class="form-control" placeholder="e.g. Rugby" required>
+                </div>
+                <div class="form-group">
+                    <label for="addCountry">Country Name</label>
+                    <input type="text" id="addCountry" class="form-control" placeholder="e.g. Australia" required>
+                </div>
+                <div class="form-group">
+                    <label for="addCompetition">Competition Name</label>
+                    <input type="text" id="addCompetition" class="form-control" placeholder="e.g. National Rugby League" required>
+                </div>
+                <div class="form-group">
+                    <label for="addFile">HTML File Name</label>
+                    <input type="text" id="addFile" class="form-control" placeholder="e.g. nrl_table_check.html" required>
+                </div>
+                <button type="submit" id="saveCompBtn" class="submit-btn">Save Competition</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        &copy; Sports Table Check Portal. All rights reserved.
+    </footer>
+
+    <script>
+        // 1. Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDaXsZls8nYshhETH249svHPmcAwuiH4w",
+            authDomain: "tablechecks-68698.firebaseapp.com",
+            projectId: "tablechecks-68698",
+            storageBucket: "tablechecks-68698.firebasestorage.app",
+            messagingSenderId: "406400003629",
+            appId: "1:406400003629:web:24dc3b10bdd6149008d2a4"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 2. State Management
+        let rawData = [];
+        let currentView = 'SPORTS'; // 'SPORTS' | 'COUNTRIES' | 'COMPETITIONS' | 'SEARCH'
+        let selectedSport = null;
+        let selectedCountry = null;
+        let isAdminLoggedIn = false;
+
+        // Sport Icons Mapper
+        const sportIcons = {
+            'basketball': '🏀',
+            'baseball': '⚾',
+            'volleyball': '🏐',
+            'hockey': '🏑',
+            'ice hockey': '🏒',
+            'american football': '🏈',
+            'rugby': '🏉',
+            'australian football': '🏉',
+            'handball': '🤾',
+            'football': '⚽',
+            'soccer': '⚽',
+            'tennis': '🎾',
+            'table tennis': '🏓',
+            'cricket': '🏏',
+            'badminton': '🏸',
+            'golf': '⛳'
+        };
+
+        function getSportIcon(sportName) {
+            const cleanName = sportName.trim().toLowerCase();
+            return sportIcons[cleanName] || '🏆';
+        }
+
+        // 3. Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchTableChecks();
+        });
+
+        // 4. Firestore Fetch Data
+        function fetchTableChecks() {
+            db.collection('tableChecks')
+                .where('active', '==', true)
+                .get()
+                .then((querySnapshot) => {
+                    rawData = [];
+                    querySnapshot.forEach((doc) => {
+                        rawData.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    calculateMetrics();
+                    renderCurrentState();
+                })
+                .catch((error) => {
+                    console.error("Error loading table checks: ", error);
+                    const grid = document.getElementById('portalGrid');
+                    grid.innerHTML = `<div class="status-message">Error fetching data. Please refresh or try again later.</div>`;
+                });
+        }
+
+        // 5. Calculations & Rendering Logic
+        function calculateMetrics() {
+            const sportsSet = new Set();
+            const countriesSet = new Set();
+
+            rawData.forEach(item => {
+                if (item.sport) sportsSet.add(item.sport.trim());
+                if (item.country) countriesSet.add(item.country.trim());
+            });
+
+            document.getElementById('metricSports').textContent = sportsSet.size;
+            document.getElementById('metricCountries').textContent = countriesSet.size;
+            document.getElementById('metricCompetitions').textContent = rawData.length;
+        }
+
+        function renderCurrentState() {
+            const searchVal = document.getElementById('searchInput').value.trim();
+            if (searchVal !== '') {
+                renderSearchView(searchVal);
+                return;
+            }
+
+            if (rawData.length === 0) {
+                renderEmptyState("No competitions available.");
+                return;
+            }
+
+            switch(currentView) {
+                case 'SPORTS':
+                    renderSportsView();
+                    break;
+                case 'COUNTRIES':
+                    renderCountriesView();
+                    break;
+                case 'COMPETITIONS':
+                    renderCompetitionsView();
+                    break;
+            }
+        }
+
+        function renderEmptyState(msg) {
+            document.getElementById('portalGrid').innerHTML = `<div class="status-message">${msg}</div>`;
+        }
+
+        // --- View 1: Sports ---
+        function renderSportsView() {
+            currentView = 'SPORTS';
+            updateBreadcrumbs();
+
+            const sportsMap = {};
+            rawData.forEach(item => {
+                const sp = item.sport ? item.sport.trim() : 'Unknown';
+                sportsMap[sp] = (sportsMap[sp] || 0) + 1;
+            });
+
+            const sportsList = Object.keys(sportsMap).sort();
+            if (sportsList.length === 0) {
+                renderEmptyState("No competitions available.");
+                return;
+            }
+
+            let html = '';
+            sportsList.forEach(sport => {
+                const icon = getSportIcon(sport);
+                const count = sportsMap[sport];
+                html += `
+                    <div class="card" onclick="selectSport('${escapeQuotes(sport)}')">
+                        <div>
+                            <div class="card-title">${icon} ${escapeHtml(sport)}</div>
+                            <div class="card-subtitle">${count} competition${count > 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="card-action">View Countries &rarr;</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('portalGrid').innerHTML = html;
+        }
+
+        function selectSport(sport) {
+            selectedSport = sport;
+            currentView = 'COUNTRIES';
+            renderCountriesView();
+        }
+
+        // --- View 2: Countries ---
+        function renderCountriesView() {
+            currentView = 'COUNTRIES';
+            updateBreadcrumbs();
+
+            const filtered = rawData.filter(item => 
+                item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase()
+            );
+
+            const countriesMap = {};
+            filtered.forEach(item => {
+                const ct = item.country ? item.country.trim() : 'Unknown';
+                countriesMap[ct] = (countriesMap[ct] || 0) + 1;
+            });
+
+            const countryList = Object.keys(countriesMap).sort();
+            if (countryList.length === 0) {
+                renderEmptyState("No countries found for this sport.");
+                return;
+            }
+
+            let html = '';
+            countryList.forEach(country => {
+                const count = countriesMap[country];
+                html += `
+                    <div class="card" onclick="selectCountry('${escapeQuotes(country)}')">
+                        <div>
+                            <div class="card-title">🌐 ${escapeHtml(country)}</div>
+                            <div class="card-subtitle">${count} competition${count > 1 ? 's' : ''}</div>
+                        </div>
+                        <div class="card-action">View Competitions &rarr;</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('portalGrid').innerHTML = html;
+        }
+
+        function selectCountry(country) {
+            selectedCountry = country;
+            currentView = 'COMPETITIONS';
+            renderCompetitionsView();
+        }
+
+        // --- View 3: Competitions ---
+        function renderCompetitionsView() {
+            currentView = 'COMPETITIONS';
+            updateBreadcrumbs();
+
+            const filtered = rawData.filter(item => 
+                item.sport && item.sport.trim().toLowerCase() === selectedSport.toLowerCase() &&
+                item.country && item.country.trim().toLowerCase() === selectedCountry.toLowerCase()
+            );
+
+            if (filtered.length === 0) {
+                renderEmptyState("No competitions found.");
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(comp => {
+                const compName = comp.competition || 'Unnamed Competition';
+                const countryName = comp.country || '';
+                const fileName = comp.file || '#';
+
+                html += `
+                    <div class="card" onclick="launchCompetition('${escapeQuotes(fileName)}')">
+                        <div>
+                            <div class="card-title">🏆 ${escapeHtml(countryName)} - ${escapeHtml(compName)}</div>
+                            <div class="card-subtitle">File: ${escapeHtml(fileName)}</div>
+                        </div>
+                        <div class="card-action">Launch Tool &rarr;</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('portalGrid').innerHTML = html;
+        }
+
+        function launchCompetition(filePath) {
+            if (!filePath || filePath === '#') {
+                alert("No valid HTML file attached to this competition.");
+                return;
+            }
+            window.location.href = filePath;
+        }
+
+        // --- Search View ---
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query === '') {
+                renderCurrentState();
+            } else {
+                renderSearchView(query);
+            }
+        }
+
+        function renderSearchView(query) {
+            const q = query.toLowerCase();
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('breadcrumb').innerHTML = `<span>Search results for "${escapeHtml(query)}"</span>`;
+
+            const filtered = rawData.filter(item => {
+                const sp = (item.sport || '').toLowerCase();
+                const ct = (item.country || '').toLowerCase();
+                const cp = (item.competition || '').toLowerCase();
+                return sp.includes(q) || ct.includes(q) || cp.includes(q);
+            });
+
+            if (filtered.length === 0) {
+                renderEmptyState("No matching competitions found.");
+                return;
+            }
+
+            let html = '';
+            filtered.forEach(comp => {
+                const icon = getSportIcon(comp.sport || '');
+                const displayTitle = `${comp.country || ''} - ${comp.competition || ''}`;
+                
+                html += `
+                    <div class="card" onclick="launchCompetition('${escapeQuotes(comp.file || '')}')">
+                        <div>
+                            <div class="card-title">${icon} ${escapeHtml(displayTitle)}</div>
+                            <div class="card-subtitle">Sport: ${escapeHtml(comp.sport || '')}</div>
+                        </div>
+                        <div class="card-action">Launch Tool &rarr;</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('portalGrid').innerHTML = html;
+        }
+
+        // 6. Navigation Controls
+        function navigateBack() {
+            document.getElementById('searchInput').value = '';
+            if (currentView === 'COMPETITIONS') {
+                selectedCountry = null;
+                currentView = 'COUNTRIES';
+                renderCountriesView();
+            } else if (currentView === 'COUNTRIES') {
+                selectedSport = null;
+                currentView = 'SPORTS';
+                renderSportsView();
+            }
+        }
+
+        function updateBreadcrumbs() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const backBtn = document.getElementById('backBtn');
+
+            if (currentView === 'SPORTS') {
+                breadcrumb.innerHTML = `<span>Sports</span>`;
+                backBtn.classList.add('hidden');
+            } else if (currentView === 'COUNTRIES') {
+                breadcrumb.innerHTML = `
+                    <span style="color: var(--text-muted); cursor: pointer;" onclick="resetToSports()">Sports</span>
+                    <span>&rsaquo;</span>
+                    <span>${escapeHtml(selectedSport)}</span>
+                `;
+                backBtn.classList.remove('hidden');
+            } else if (currentView === 'COMPETITIONS') {
+                breadcrumb.innerHTML = `
+                    <span style="color: var(--text-muted); cursor: pointer;" onclick="resetToSports()">Sports</span>
+                    <span>&rsaquo;</span>
+                    <span style="color: var(--text-muted); cursor: pointer;" onclick="selectSport('${escapeQuotes(selectedSport)}')">${escapeHtml(selectedSport)}</span>
+                    <span>&rsaquo;</span>
+                    <span>${escapeHtml(selectedCountry)}</span>
+                `;
+                backBtn.classList.remove('hidden');
+            }
+        }
+
+        function resetToSports() {
+            selectedSport = null;
+            selectedCountry = null;
+            currentView = 'SPORTS';
+            document.getElementById('searchInput').value = '';
+            renderSportsView();
+        }
+
+        // 7. Admin Logic
+        function openLoginModal() {
+            if (isAdminLoggedIn) {
+                openModal('adminModal');
+            } else {
+                openModal('loginModal');
+            }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            showAlert(id === 'loginModal' ? 'loginAlert' : 'adminAlert', '', 'none');
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('loginUser').value.trim();
+            const pass = document.getElementById('loginPass').value.trim();
+
+            if (user === "OSED" && pass === "OSED@1234") {
+                isAdminLoggedIn = true;
+                closeModal('loginModal');
+                document.getElementById('loginUser').value = '';
+                document.getElementById('loginPass').value = '';
+                document.getElementById('adminToggleBtn').textContent = "Add Competition";
+                openModal('adminModal');
+            } else {
+                showAlert('loginAlert', 'Invalid Username or Password.', 'error');
+            }
+        }
+
+        function handleAddCompetition(event) {
+            event.preventDefault();
+
+            const sport = document.getElementById('addSport').value.trim();
+            const country = document.getElementById('addCountry').value.trim();
+            const competition = document.getElementById('addCompetition').value.trim();
+            const file = document.getElementById('addFile').value.trim();
+
+            // Validation 1: All mandatory
+            if (!sport || !country || !competition || !file) {
+                showAlert('adminAlert', 'All fields are mandatory.', 'error');
+                return;
+            }
+
+            // Validation 2: Check Duplicate (Sport + Country + Competition)
+            const isDuplicate = rawData.some(item => 
+                item.sport && item.sport.trim().toLowerCase() === sport.toLowerCase() &&
+                item.country && item.country.trim().toLowerCase() === country.toLowerCase() &&
+                item.competition && item.competition.trim().toLowerCase() === competition.toLowerCase()
+            );
+
+            if (isDuplicate) {
+                showAlert('adminAlert', 'A competition with this Sport, Country, and Name already exists.', 'error');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveCompBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            // Save to Firestore
+            db.collection('tableChecks').add({
+                sport: sport,
+                country: country,
+                competition: competition,
+                file: file,
+                active: true
+            })
+            .then(() => {
+                showAlert('adminAlert', 'Competition added successfully! Refreshing...', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1200);
+            })
+            .catch((error) => {
+                console.error("Error adding document: ", error);
+                showAlert('adminAlert', 'Error saving competition: ' + error.message, 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Competition';
+            });
+        }
+
+        function showAlert(alertId, message, type) {
+            const alertBox = document.getElementById(alertId);
+            if (type === 'none') {
+                alertBox.className = 'alert-box';
+                alertBox.textContent = '';
+                return;
+            }
+            alertBox.className = `alert-box ${type}`;
+            alertBox.textContent = message;
+        }
+
+        // Helpers
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function escapeQuotes(str) {
+            if (!str) return '';
+            return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+    </script>
 </body>
 </html>
