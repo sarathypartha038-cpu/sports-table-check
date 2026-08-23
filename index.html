@@ -110,6 +110,14 @@
             border-color: var(--secondary-blue);
         }
 
+        /* Protected Content Wrapper */
+        #portalWrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 100%;
+        }
+
         /* Main Container */
         main {
             max-width: 1200px;
@@ -530,68 +538,74 @@
             <div class="user-controls">
                 <div class="user-status" id="userStatusDisplay">
                     <span class="status-badge" id="userStatusBadge"></span>
-                    <span id="userRoleText">Guest Mode</span>
+                    <span id="userRoleText">Not Logged In</span>
                 </div>
                 <button class="btn-header hidden" id="addCompNavBtn" onclick="openAddModal()">Add Competition</button>
-                <button class="btn-header" id="authBtn" onclick="handleAuthClick()">Login</button>
+                <button class="btn-header" id="authBtn" onclick="handleAuthClick()">Logout</button>
             </div>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main>
-        <!-- Metrics Bar -->
-        <section class="metrics-grid">
-            <div class="metric-card">
-                <span>Sports</span>
-                <strong id="metricSports">0</strong>
-            </div>
-            <div class="metric-card">
-                <span>Countries</span>
-                <strong id="metricCountries">0</strong>
-            </div>
-            <div class="metric-card">
-                <span>Competitions</span>
-                <strong id="metricCompetitions">0</strong>
-            </div>
-        </section>
+    <!-- Protected Application Content Wrapper -->
+    <div id="portalWrapper" class="hidden">
+        <!-- Main Container -->
+        <main>
+            <!-- Metrics Bar -->
+            <section class="metrics-grid">
+                <div class="metric-card">
+                    <span>Sports</span>
+                    <strong id="metricSports">0</strong>
+                </div>
+                <div class="metric-card">
+                    <span>Countries</span>
+                    <strong id="metricCountries">0</strong>
+                </div>
+                <div class="metric-card">
+                    <span>Competitions</span>
+                    <strong id="metricCompetitions">0</strong>
+                </div>
+            </section>
 
-        <!-- Search Bar -->
-        <section class="search-container">
-            <input 
-                type="text" 
-                id="searchInput" 
-                class="search-input" 
-                placeholder="Search sports..." 
-                oninput="handleScopedSearch()"
-            >
-        </section>
+            <!-- Search Bar -->
+            <section class="search-container">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="search-input" 
+                    placeholder="Search sports..." 
+                    oninput="handleScopedSearch()"
+                >
+            </section>
 
-        <!-- Navigation Breadcrumbs & Back Button -->
-        <div class="view-controls">
-            <div class="breadcrumb" id="breadcrumb">
-                <span>Sports</span>
+            <!-- Navigation Breadcrumbs & Back Button -->
+            <div class="view-controls">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span>Sports</span>
+                </div>
+                <button class="back-btn hidden" id="backBtn" onclick="navigateBack()">
+                    ← Back
+                </button>
             </div>
-            <button class="back-btn hidden" id="backBtn" onclick="navigateBack()">
-                ← Back
-            </button>
-        </div>
 
-        <!-- Dynamic Portal Grid -->
-        <section class="portal-grid" id="portalGrid">
-            <div class="loading-spinner">
-                <div class="spinner"></div>
-                <div>Loading data from database...</div>
-            </div>
-        </section>
-    </main>
+            <!-- Dynamic Portal Grid -->
+            <section class="portal-grid" id="portalGrid">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <div>Loading data from database...</div>
+                </div>
+            </section>
+        </main>
 
-    <!-- Login Modal -->
+        <footer>
+            &copy; Sports Table Check Portal. All rights reserved.
+        </footer>
+    </div>
+
+    <!-- Mandatory Login Modal (No close button, cannot be dismissed without auth) -->
     <div class="modal-overlay" id="loginModal">
         <div class="modal-card">
             <div class="modal-header">
                 <h2>User Authentication</h2>
-                <button class="close-btn" onclick="closeModal('loginModal')">&times;</button>
             </div>
             <div id="loginAlert" class="alert-box"></div>
             <form onsubmit="handleLogin(event)">
@@ -638,10 +652,6 @@
             </form>
         </div>
     </div>
-
-    <footer>
-        &copy; Sports Table Check Portal. All rights reserved.
-    </footer>
 
     <script>
         // 1. Firebase Configuration
@@ -691,24 +701,28 @@
             return sportIcons[clean] || '🏆';
         }
 
-        // 3. Initialization & Session Restoration
-        window.addEventListener('DOMContentLoaded', () => {
-            restoreSession();
-            fetchTableChecks();
-        });
-
-        function restoreSession() {
-            const savedRole = localStorage.getItem('sportsPortalRole');
-            if (savedRole === 'ADMIN' || savedRole === 'USER') {
-                currentUserRole = savedRole;
-            } else {
-                currentUserRole = null;
+        // 3. Authorization Guard
+        function requireLogin() {
+            if (currentUserRole === null) {
+                openModal('loginModal');
+                return false;
             }
-            updateUserUI();
+            return true;
         }
 
-        // 4. Firestore Fetch Data
+        // 4. Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            currentUserRole = null;
+            localStorage.removeItem('sportsPortalRole');
+            document.getElementById('portalWrapper').classList.add('hidden');
+            updateUserUI();
+            openModal('loginModal');
+        });
+
+        // 5. Firestore Fetch Data
         function fetchTableChecks() {
+            if (!requireLogin()) return;
+
             showLoadingState();
             
             let query = db.collection('tableChecks');
@@ -744,7 +758,7 @@
             `;
         }
 
-        // 5. Metrics & Render Routing
+        // 6. Metrics & Render Routing
         function calculateMetrics() {
             const sportsSet = new Set();
             const countriesSet = new Set();
@@ -764,6 +778,8 @@
         }
 
         function renderCurrentView() {
+            if (!requireLogin()) return;
+
             updateSearchPlaceholder();
             updateBreadcrumbs();
 
@@ -850,6 +866,7 @@
         }
 
         function selectSport(sport) {
+            if (!requireLogin()) return;
             selectedSport = sport;
             currentView = 'COUNTRIES';
             document.getElementById('searchInput').value = '';
@@ -907,6 +924,7 @@
         }
 
         function selectCountry(country) {
+            if (!requireLogin()) return;
             selectedCountry = country;
             currentView = 'COMPETITIONS';
             document.getElementById('searchInput').value = '';
@@ -975,6 +993,7 @@
 
         // --- STEP 4: LAUNCH COMPETITION FILE ---
         function launchCompetition(filePath) {
+            if (!requireLogin()) return;
             if (!filePath || filePath === '#') {
                 alert("No HTML file associated with this competition.");
                 return;
@@ -982,13 +1001,86 @@
             window.location.href = filePath;
         }
 
-        // 6. Search Handler
+        // 7. Official AFL Table Parser Logic
+        function parseOfficialAFLTable(rawText) {
+            if (!rawText || typeof rawText !== 'string') return [];
+
+            const IGNORED_MARKERS = new Set([
+                'TOP 6', 'WC', 'NMFC', 'RICH', 'WCE', 
+                'GWS', 'ADEL', 'SYD', 'ESS', 'GEEL', 'PORT'
+            ]);
+
+            const TEAM_ALIASES = {
+                "Fremantle": "Fremantle Dockers",
+                "Adelaide Crows": "Adelaide",
+                "Gold Coast SUNS": "Gold Coast Suns",
+                "GWS GIANTS": "GWS Giants"
+            };
+
+            const lines = rawText
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .filter(line => !IGNORED_MARKERS.has(line.toUpperCase()));
+
+            const results = [];
+            let i = 0;
+
+            while (i < lines.length) {
+                const posVal = parseInt(lines[i], 10);
+                const isPosition = !isNaN(posVal) && posVal >= 1 && posVal <= 18 && lines[i] === posVal.toString();
+
+                if (isPosition && (i + 9 < lines.length)) {
+                    const position = posVal;
+                    const teamRaw = lines[i + 1];
+
+                    const played = parseInt(lines[i + 2], 10);
+                    const points = parseInt(lines[i + 3], 10);
+                    // lines[i + 4] is Percentage (ignored)
+                    const wins = parseInt(lines[i + 5], 10);
+                    const losses = parseInt(lines[i + 6], 10);
+                    const draws = parseInt(lines[i + 7], 10);
+                    const pointsFor = parseInt(lines[i + 8], 10);
+                    const pointsAgainst = parseInt(lines[i + 9], 10);
+
+                    if (!isNaN(played) && !isNaN(points) && !isNaN(wins) && 
+                        !isNaN(losses) && !isNaN(draws) && !isNaN(pointsFor) && !isNaN(pointsAgainst)) {
+
+                        const normalizedTeam = TEAM_ALIASES[teamRaw] || teamRaw;
+                        const difference = pointsFor - pointsAgainst;
+
+                        results.push({
+                            pos: position,
+                            team: normalizedTeam,
+                            played: played,
+                            wins: wins,
+                            draws: draws,
+                            losses: losses,
+                            for: pointsFor,
+                            against: pointsAgainst,
+                            difference: difference,
+                            points: points
+                        });
+
+                        i += 10;
+                        continue;
+                    }
+                }
+                i++;
+            }
+
+            return results;
+        }
+
+        // 8. Search Handler
         function handleScopedSearch() {
+            if (!requireLogin()) return;
             renderCurrentView();
         }
 
-        // 7. Navigation Breadcrumbs & Back Logic
+        // 9. Navigation Breadcrumbs & Back Logic
         function navigateBack() {
+            if (!requireLogin()) return;
             document.getElementById('searchInput').value = '';
             if (currentView === 'COMPETITIONS') {
                 selectedCountry = null;
@@ -1027,6 +1119,7 @@
         }
 
         function resetToSports() {
+            if (!requireLogin()) return;
             selectedSport = null;
             selectedCountry = null;
             currentView = 'SPORTS';
@@ -1034,17 +1127,18 @@
             renderCurrentView();
         }
 
-        // 8. Authentication & Session Management
+        // 10. Authentication & Session Management
         function handleAuthClick() {
-            if (currentUserRole !== null) {
-                // Logout logic
-                currentUserRole = null;
-                localStorage.removeItem('sportsPortalRole');
-                updateUserUI();
-                fetchTableChecks();
-            } else {
-                openModal('loginModal');
-            }
+            // Logout logic
+            currentUserRole = null;
+            localStorage.removeItem('sportsPortalRole');
+            rawData = [];
+            selectedSport = null;
+            selectedCountry = null;
+            currentView = 'SPORTS';
+            document.getElementById('portalWrapper').classList.add('hidden');
+            updateUserUI();
+            openModal('loginModal');
         }
 
         function handleLogin(event) {
@@ -1054,17 +1148,17 @@
 
             if (user === "OSED" && pass === "OSED@1234") {
                 currentUserRole = 'USER';
-                localStorage.setItem('sportsPortalRole', 'USER');
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
+                document.getElementById('portalWrapper').classList.remove('hidden');
                 fetchTableChecks();
             } else if (user === "Partha Sarathy" && pass === "Radha@123") {
                 currentUserRole = 'ADMIN';
-                localStorage.setItem('sportsPortalRole', 'ADMIN');
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
+                document.getElementById('portalWrapper').classList.remove('hidden');
                 fetchTableChecks();
             } else {
                 showAlert('loginAlert', 'Invalid username or password', 'error');
@@ -1084,26 +1178,26 @@
             const badge = document.getElementById('userStatusBadge');
 
             if (currentUserRole === 'ADMIN') {
-                authBtn.textContent = 'Logout';
+                authBtn.classList.remove('hidden');
                 addCompNavBtn.classList.remove('hidden');
                 roleText.textContent = 'Logged in as: Admin';
                 badge.className = 'status-badge admin';
             } else if (currentUserRole === 'USER') {
-                authBtn.textContent = 'Logout';
+                authBtn.classList.remove('hidden');
                 addCompNavBtn.classList.add('hidden');
                 roleText.textContent = 'Logged in as: User';
                 badge.className = 'status-badge';
             } else {
-                authBtn.textContent = 'Login';
+                authBtn.classList.add('hidden');
                 addCompNavBtn.classList.add('hidden');
-                roleText.textContent = 'Guest Mode';
+                roleText.textContent = 'Not Logged In';
                 badge.className = 'status-badge';
             }
         }
 
-        // 9. Admin Operations (CRUD)
+        // 11. Admin Operations (CRUD)
         function openAddModal() {
-            // Strict Authorization Guard
+            if (!requireLogin()) return;
             if (currentUserRole !== 'ADMIN') {
                 alert("Access Denied: Only Admin users can add competitions.");
                 return;
@@ -1120,6 +1214,7 @@
         }
 
         function openEditModal(docId) {
+            if (!requireLogin()) return;
             if (currentUserRole !== 'ADMIN') {
                 alert("Access Denied: Only Admin users can edit competitions.");
                 return;
@@ -1140,6 +1235,7 @@
 
         function handleSaveCompetition(event) {
             event.preventDefault();
+            if (!requireLogin()) return;
 
             if (currentUserRole !== 'ADMIN') {
                 showAlert('adminAlert', 'Permission denied: Admin rights required.', 'error');
@@ -1152,13 +1248,11 @@
             const competition = document.getElementById('addCompetition').value.trim();
             const file = document.getElementById('addFile').value.trim();
 
-            // Validation: Mandatory fields
             if (!sport || !country || !competition || !file) {
                 showAlert('adminAlert', 'All fields are required.', 'error');
                 return;
             }
 
-            // Validation: Prevent duplicates (Sport + Country + Competition)
             const isDuplicate = rawData.some(item => 
                 item.id !== docId &&
                 item.sport && item.sport.trim().toLowerCase() === sport.toLowerCase() &&
@@ -1176,7 +1270,6 @@
             saveBtn.textContent = 'Saving...';
 
             if (docId) {
-                // Update existing
                 db.collection('tableChecks').doc(docId).update({
                     sport: sport,
                     country: country,
@@ -1198,7 +1291,6 @@
                     saveBtn.textContent = 'Save Competition';
                 });
             } else {
-                // Add new document
                 db.collection('tableChecks').add({
                     sport: sport,
                     country: country,
@@ -1225,6 +1317,7 @@
         }
 
         function toggleActiveStatus(docId, currentActive) {
+            if (!requireLogin()) return;
             if (currentUserRole !== 'ADMIN') return;
             if (!confirm(`Are you sure you want to ${currentActive ? 'deactivate' : 'activate'} this competition?`)) return;
 
@@ -1240,6 +1333,7 @@
         }
 
         function deleteCompetition(docId) {
+            if (!requireLogin()) return;
             if (currentUserRole !== 'ADMIN') return;
             if (!confirm("Are you sure you want to permanently delete this competition?")) return;
 
