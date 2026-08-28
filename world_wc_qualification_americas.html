@@ -519,9 +519,20 @@
         const RS3_TEAM_FIXES = {};
 
         // MINIMAL OFFICIAL TEAM ALIASES FOR BASKETBALL
-        const TEAM_ALIASES = {
-            "USA": "United States",
-            "U.S.A.": "United States"
+        const TEAM_ALIASES = {};
+
+        // KNOWN FEDERATION VARIANTS
+        const COUNTRY_VARIANTS = {
+            "china": "China PR",
+            "pr china": "China PR",
+            "korea": "Korea Republic",
+            "south korea": "Korea Republic",
+            "usa": "United States",
+            "u.s.a.": "United States",
+            "ir iran": "Iran",
+            "czechia": "Czech Republic",
+            "chinese taipei": "Taiwan",
+            "great britain": "United Kingdom"
         };
 
         // Initialize Firebase v8.10.1
@@ -581,27 +592,46 @@
             return isNaN(parsed) ? null : parsed;
         }
 
+        // 1. COUNTRY NAME NORMALIZATION FUNCTION
+        function normalizeCountryName(name) {
+            if (!name) return "";
+            
+            // 1. Remove ranking suffixes: USA (1) → USA
+            let cleaned = name.replace(/\s*\(\d+\)\s*$/, '').trim();
+            
+            // 2. Remove extra whitespace
+            cleaned = cleaned.replace(/\s+/g, ' ');
+            
+            // 3. Convert known federation variants
+            const lowerKey = cleaned.toLowerCase();
+            if (COUNTRY_VARIANTS[lowerKey]) {
+                return COUNTRY_VARIANTS[lowerKey];
+            }
+
+            return cleaned;
+        }
+
         // OFFICIAL TEAM RESOLUTION LOGIC
         function resolveOfficialTeamName(rawName) {
-            // STEP 0: Strip trailing rank marker, e.g., "USA (1)" -> "USA"
-            let cleanedName = rawName.replace(/\s*\(\d+\)\s*$/, '').trim();
-            const lower = cleanedName.toLowerCase();
+            // STEP 1: Normalize Country Name
+            let normalized = normalizeCountryName(rawName);
+            const lowerNormalized = normalized.toLowerCase();
 
-            // STEP 1: Check TEAM_ALIASES
-            if (TEAM_ALIASES[cleanedName]) {
-                return TEAM_ALIASES[cleanedName];
+            // STEP 2: Fall back to TEAM_ALIASES if needed
+            if (TEAM_ALIASES[normalized]) {
+                return TEAM_ALIASES[normalized];
             }
-            const aliasKey = Object.keys(TEAM_ALIASES).find(k => k.trim().toLowerCase() === lower);
+            const aliasKey = Object.keys(TEAM_ALIASES).find(k => k.trim().toLowerCase() === lowerNormalized);
             if (aliasKey) {
                 return TEAM_ALIASES[aliasKey];
             }
 
-            // STEP 2 & 3: Check Saved Firebase Mappings
-            if (savedMappings.has(lower)) {
-                return savedMappings.get(lower);
+            // STEP 3: Fall back to Saved Firebase Mappings
+            if (savedMappings.has(lowerNormalized)) {
+                return savedMappings.get(lowerNormalized);
             }
 
-            return cleanedName;
+            return normalized;
         }
 
         // RS3 PARSER LOGIC
@@ -723,11 +753,9 @@
                         let played = Math.round(numTokens[0]);
                         let wins = Math.round(numTokens[1]);
                         let losses = Math.round(numTokens[2]);
-                        // numTokens[3] is % (ignored)
                         let forPts = Math.round(numTokens[4]);
                         let againstPts = Math.round(numTokens[5]);
                         let diff = Math.round(numTokens[6]);
-                        // numTokens[7] is FA, numTokens[8] is AA (ignored)
                         let points = Math.round(numTokens[9]);
 
                         officialData.push({
@@ -750,7 +778,6 @@
                 i++;
             }
 
-            // ADD DEBUG LOGS
             console.log("Official Teams Parsed:", officialData.length);
             console.table(officialData);
 
@@ -767,7 +794,6 @@
             const rs3Data = parseRS3Data(rs3Raw);
             const officialData = parseOfficialData(officialRaw);
 
-            // ADD RS3 DEBUG LOG
             console.log("RS3 Teams Parsed:", rs3Data.length);
             console.table(rs3Data);
 
@@ -780,15 +806,15 @@
             lastUnmappedOfficialTeams = [];
 
             officialData.forEach(off => {
-                const cleanedName = off.originalTeamName.replace(/\s*\(\d+\)\s*$/, '').trim();
-                const lowerClean = cleanedName.toLowerCase();
+                const normalizedOff = normalizeCountryName(off.originalTeamName);
+                const lowerOff = normalizedOff.toLowerCase();
 
-                const isDefinedAlias = !!TEAM_ALIASES[cleanedName] || Object.keys(TEAM_ALIASES).some(k => k.trim().toLowerCase() === lowerClean);
-                const isFirebaseMapped = savedMappings.has(lowerClean);
-                const matchesExact = rs3Data.some(rs3 => rs3.teamRaw.trim().toLowerCase() === lowerClean);
+                const isDefinedAlias = !!TEAM_ALIASES[normalizedOff] || Object.keys(TEAM_ALIASES).some(k => k.trim().toLowerCase() === lowerOff);
+                const isFirebaseMapped = savedMappings.has(lowerOff);
+                const matchesExact = rs3Data.some(rs3 => normalizeCountryName(rs3.teamRaw).toLowerCase() === lowerOff);
 
                 if (!isDefinedAlias && !isFirebaseMapped && !matchesExact) {
-                    lastUnmappedOfficialTeams.push(cleanedName);
+                    lastUnmappedOfficialTeams.push(off.originalTeamName);
                 }
             });
 
@@ -808,12 +834,15 @@
 
             rs3Data.forEach(rs3 => {
                 const rs3Team = rs3.teamRaw;
-                const normalizedRS3 = rs3Team.trim().toLowerCase();
+                
+                // Apply normalizeCountryName to RS3 Team Name
+                const normalizedRS3 = normalizeCountryName(rs3Team).toLowerCase();
 
                 let offIdx = officialData.findIndex((off, idx) => {
                     if (processedOfficialIdx.has(idx)) return false;
 
-                    const normalizedOfficial = off.teamName.trim().toLowerCase();
+                    // Apply normalizeCountryName to Official Team Name
+                    const normalizedOfficial = normalizeCountryName(off.teamName).toLowerCase();
 
                     return normalizedRS3 === normalizedOfficial;
                 });
@@ -986,7 +1015,7 @@
         // TEAM MAPPING MODAL
         function openTeamMappingPopupManual() {
             if (lastUnmappedOfficialTeams.length === 0) {
-                alert("No unmapped teams require attention. All teams have been matched automatically via TEAM_ALIASES or saved Firebase mappings.");
+                alert("No unmapped teams require attention. All teams have been matched automatically via normalization, TEAM_ALIASES, or saved Firebase mappings.");
                 return;
             }
 
@@ -1067,7 +1096,7 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
-                    savedMappings.set(officialTeam.trim().toLowerCase(), rs3Team.trim());
+                    savedMappings.set(normalizeCountryName(officialTeam).toLowerCase(), rs3Team.trim());
                     savedCount++;
                 }
             }
@@ -1149,7 +1178,7 @@
                 const batch = db.batch();
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    if (data.officialTeam && data.officialTeam.trim().toLowerCase() === officialTeamLower) {
+                    if (data.officialTeam && normalizeCountryName(data.officialTeam).toLowerCase() === officialTeamLower) {
                         batch.delete(doc.ref);
                     }
                 });
