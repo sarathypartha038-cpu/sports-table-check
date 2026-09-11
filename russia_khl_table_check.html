@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russia - KHL Standings Comparator</title>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-subtle: #f1f5f9;
+            --border-color: #cbd5e1;
+            --border-dark: #94a3b8;
+            --primary-blue: #1e40af;
+            --primary-hover: #1e3a8a;
+            --header-bg: #1e293b;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --match-bg: #dcfce7;
+            --match-text: #166534;
+            --mismatch-bg: #fee2e2;
+            --mismatch-text: #991b1b;
+            --missing-bg: #ffedd5;
+            --missing-text: #9a3412;
+            --extra-bg: #dbeafe;
+            --extra-text: #1e40af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.1rem;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .input-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .input-card label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+            color: var(--primary-blue);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .input-card label span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        textarea {
+            width: 100%;
+            height: 140px;
+            background-color: var(--bg-page);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            padding: 0.5rem;
+            font-family: "Consolas", "Courier New", Courier, monospace;
+            font-size: 0.8rem;
+            resize: vertical;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-blue);
+            background-color: #fff;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.825rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-card-subtle);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .summary-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+
+        .summary-card span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.1rem;
+        }
+
+        .summary-card strong {
+            font-size: 1.25rem;
+            color: var(--text-main);
+        }
+
+        .summary-card.matched strong { color: var(--match-text); }
+        .summary-card.mismatched strong { color: var(--mismatch-text); }
+        .summary-card.missing strong { color: var(--missing-text); }
+        .summary-card.extra strong { color: var(--extra-text); }
+
+        .table-container {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: auto;
+            max-height: 600px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background-color: var(--header-bg);
+            color: white;
+            z-index: 10;
+        }
+
+        th {
+            padding: 0.45rem 0.5rem;
+            font-weight: 600;
+            border: 1px solid var(--border-dark);
+            font-size: 0.725rem;
+            letter-spacing: 0.02em;
+            white-space: nowrap;
+        }
+
+        th span.sub-header {
+            display: block;
+            font-size: 0.65rem;
+            color: #cbd5e1;
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        td {
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tr.conference-header-row td {
+            background-color: var(--header-bg);
+            color: #ffffff;
+            font-weight: 800;
+            text-align: left;
+            padding: 0.6rem 0.75rem;
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            border-top: 2px solid var(--border-dark);
+        }
+
+        tbody tr:not(.conference-header-row):nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        tbody tr:not(.conference-header-row):hover {
+            background-color: #f1f5f9;
+        }
+
+        .badge {
+            padding: 0.15rem 0.45rem;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .badge-match { background-color: var(--match-bg); color: var(--match-text); border: 1px solid #bbf7d0; }
+        .badge-mismatch { background-color: var(--mismatch-bg); color: var(--mismatch-text); border: 1px solid #fecaca; }
+        .badge-missing { background-color: var(--missing-bg); color: var(--missing-text); border: 1px solid #fed7aa; }
+        .badge-extra { background-color: var(--extra-bg); color: var(--extra-text); border: 1px solid #bfdbfe; }
+
+        tr.row-match {
+            background-color: var(--match-bg) !important;
+        }
+
+        .cell-match {
+            color: var(--match-text);
+            font-weight: 500;
+        }
+
+        .cell-mismatch {
+            background-color: var(--mismatch-bg) !important;
+            color: var(--mismatch-text) !important;
+            font-weight: 700;
+        }
+
+        .team-cell {
+            text-align: left;
+            font-weight: 600;
+            padding-left: 0.6rem;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        .val-comparison {
+            font-family: "Consolas", "Courier New", Courier, monospace;
+            font-size: 0.775rem;
+            white-space: nowrap;
+        }
+
+        .empty-placeholder {
+            text-align: center;
+            padding: 2.5rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>🏒 Russia - KHL Standings Comparator</h1>
+            <p>Verification tool for Scoresway vs Official KHL Standings Data</p>
+        </div>
+    </header>
+
+    <!-- Input Section -->
+    <div class="input-grid">
+        <div class="input-card">
+            <label for="scoreswayInput">
+                Scoresway Data 
+                <span>Format: Conference headers & Team rows</span>
+            </label>
+            <textarea id="scoreswayInput" placeholder="Paste Scoresway KHL data here..."></textarea>
+        </div>
+        <div class="input-card">
+            <label for="officialInput">
+                Official Data 
+                <span>Format: Conference headers & Team stats underneath</span>
+            </label>
+            <textarea id="officialInput" placeholder="Paste Official KHL data here..."></textarea>
+        </div>
+    </div>
+
+    <!-- Action Controls -->
+    <div class="controls">
+        <button class="btn btn-primary" onclick="processComparison()">⚡ Compare Data</button>
+        <button class="btn btn-secondary" onclick="clearData()">🗑️ Clear</button>
+        <button class="btn btn-secondary" onclick="exportToExcel()">📊 Export Excel</button>
+        <button class="btn btn-secondary" onclick="copyResults()">📋 Copy Results</button>
+    </div>
+
+    <!-- Metrics Summary -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <span>Total Teams</span>
+            <strong id="metricTotal">0</strong>
+        </div>
+        <div class="summary-card matched">
+            <span>Matched</span>
+            <strong id="metricMatched">0</strong>
+        </div>
+        <div class="summary-card mismatched">
+            <span>Mismatched</span>
+            <strong id="metricMismatched">0</strong>
+        </div>
+        <div class="summary-card missing">
+            <span>Missing In Scoresway</span>
+            <strong id="metricMissing">0</strong>
+        </div>
+        <div class="summary-card extra">
+            <span>Extra In Scoresway</span>
+            <strong id="metricExtra">0</strong>
+        </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="table-container">
+        <table id="resultsTable">
+            <thead id="resultsHead">
+                <tr>
+                  <th>Pos<span class="sub-header">Scoresway / Official</span></th>
+                  <th style="text-align: left;">Team</th>
+                  <th>MP / GP<span class="sub-header">Scoresway / Official</span></th>
+                  <th>W<span class="sub-header">Scoresway / Official</span></th>
+                  <th>WO / OTW<span class="sub-header">Scoresway / Official</span></th>
+                  <th>WP / SOW<span class="sub-header">Scoresway / Official</span></th>
+                  <th>L<span class="sub-header">Scoresway / Official</span></th>
+                  <th>LO / OTL<span class="sub-header">Scoresway / Official</span></th>
+                  <th>LP / SOL<span class="sub-header">Scoresway / Official</span></th>
+                  <th>GF<span class="sub-header">Scoresway / Official</span></th>
+                  <th>GA<span class="sub-header">Scoresway / Official</span></th>
+                  <th>Diff<span class="sub-header">Scoresway / Official</span></th>
+                  <th>P / PTS<span class="sub-header">Scoresway / Official</span></th>
+                  <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="resultsBody">
+                <tr>
+                    <td colspan="14" class="empty-placeholder">Paste data into the boxes above and click "Compare Data" to view results.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // League Configuration Structure for KHL
+        const LEAGUE_CONFIGS = {
+            "KHL": {
+                name: "KHL",
+                comparisonColumns: [
+                    { key: 'pos', label: 'Pos', scoreswayHeader: 'Pos', officialHeader: 'Pos' },
+                    { key: 'mp', label: 'MP / GP', scoreswayHeader: 'MP', officialHeader: 'GP' },
+                    { key: 'w', label: 'W', scoreswayHeader: 'W', officialHeader: 'W' },
+                    { key: 'wo', label: 'WO / OTW', scoreswayHeader: 'WO', officialHeader: 'OTW' },
+                    { key: 'wp', label: 'WP / SOW', scoreswayHeader: 'WP', officialHeader: 'SOW' },
+                    { key: 'l', label: 'L', scoreswayHeader: 'L', officialHeader: 'L' },
+                    { key: 'lo', label: 'LO / OTL', scoreswayHeader: 'LO', officialHeader: 'OTL' },
+                    { key: 'lp', label: 'LP / SOL', scoreswayHeader: 'LP', officialHeader: 'SOL' },
+                    { key: 'gf', label: 'GF', scoreswayHeader: 'F', officialHeader: 'GF' },
+                    { key: 'ga', label: 'GA', scoreswayHeader: 'A', officialHeader: 'GA' },
+                    { key: 'diff', label: 'Diff', scoreswayHeader: 'D', officialHeader: 'Net Difference' },
+                    { key: 'p', label: 'P / PTS', scoreswayHeader: 'P', officialHeader: 'PTS' }
+                ]
+            }
+        };
+
+        const activeLeagueConfig = LEAGUE_CONFIGS["KHL"];
+
+        // KHL Team Name Mapping Dictionary
+        const KHL_TEAM_MAPPINGS = {
+            "lokomotiv yaroslavl": "Lokomotiv",
+            "torpedo nizhny novgorod": "Torpedo",
+            "torpedo nizhny nov": "Torpedo",
+            "torpedo nizhny nov...": "Torpedo",
+            "ska st. petersburg": "SKA",
+            "spartak moskva": "Spartak",
+            "shanghai dragons": "Dragons",
+            "cherepovets": "Severstal",
+            "dynamo moskva": "Dynamo Msk",
+            "dinamo minsk": "Dinamo Mn",
+            "lada togliatti": "Lada",
+            "sochi": "HC Sochi",
+            "metallurg magnitogorsk": "Metallurg Mg",
+            "barys astana": "Barys",
+            "sibir novosibirsk": "Sibir",
+            "admiral vladivostok": "Admiral",
+            "amur khabarovsk": "Amur"
+        };
+
+        function normalizeTeam(name) {
+            if (!name) return "";
+            let cleaned = name.replace(/\.\.\.$/, '');
+            cleaned = cleaned.replace(/…$/, '');
+            cleaned = cleaned.trim().toLowerCase();
+
+            let mappedName = cleaned;
+            if (KHL_TEAM_MAPPINGS[cleaned]) {
+                mappedName = KHL_TEAM_MAPPINGS[cleaned].toLowerCase();
+            }
+
+            console.log('Mapped Team:', name, '=>', mappedName);
+            return mappedName.replace(/[^a-z0-9]/g, '');
+        }
+
+        function cleanInt(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            let str = String(val).replace(/\+/g, '').trim();
+            let parsed = parseInt(str, 10);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        function parseScoreswayKHL(rawText) {
+            if (!rawText || !rawText.trim()) return [];
+            const lines = rawText.split('\n').map(l => l.replace(/[\t\r]+/g, ' ').trim()).filter(l => l.length > 0);
+            const records = [];
+            let currentConference = "Eastern Conference";
+
+            const skipTokens = [
+                "total", "home", "away", "form", "# team mp w wo wp l lo lp f a d p", "standings"
+            ];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+                let lineLower = line.toLowerCase();
+
+                if (lineLower.includes("conference")) {
+                    currentConference = line;
+                    continue;
+                }
+
+                if (skipTokens.some(st => lineLower.includes(st))) {
+                    continue;
+                }
+
+                let tokens = line.split(/\s+/);
+                if (tokens.length >= 12 && /^\d+$/.test(tokens[0])) {
+                    let pos = parseInt(tokens[0], 10);
+                    let remainderTokens = tokens.slice(1);
+                    
+                    let collected = [];
+                    let idx = 0;
+                    while (idx < remainderTokens.length) {
+                        let t = remainderTokens[idx];
+                        if (/^[-+]?\d+$/.test(t) && idx > 0 && remainderTokens.length - idx >= 11) {
+                            break;
+                        }
+                        if (remainderTokens.length - idx === 11) {
+                            break;
+                        }
+                        collected.push(t);
+                        idx++;
+                    }
+
+                    let rawTeamName = collected.join(' ');
+                    let statsTokens = remainderTokens.slice(idx);
+
+                    if (statsTokens.length < 11 && tokens.length >= 12) {
+                        rawTeamName = tokens.slice(1, tokens.length - 11).join(' ');
+                        statsTokens = tokens.slice(tokens.length - 11);
+                    }
+
+                    let mp = statsTokens.length > 0 ? cleanInt(statsTokens[0]) : 0;
+                    let w = statsTokens.length > 1 ? cleanInt(statsTokens[1]) : 0;
+                    let wo = statsTokens.length > 2 ? cleanInt(statsTokens[2]) : 0;
+                    let wp = statsTokens.length > 3 ? cleanInt(statsTokens[3]) : 0;
+                    let l = statsTokens.length > 4 ? cleanInt(statsTokens[4]) : 0;
+                    let lo = statsTokens.length > 5 ? cleanInt(statsTokens[5]) : 0;
+                    let lp = statsTokens.length > 6 ? cleanInt(statsTokens[6]) : 0;
+                    let f = statsTokens.length > 7 ? cleanInt(statsTokens[7]) : 0;
+                    let a = statsTokens.length > 8 ? cleanInt(statsTokens[8]) : 0;
+                    let d = statsTokens.length > 9 ? cleanInt(statsTokens[9]) : (f - a);
+                    let p = statsTokens.length > 10 ? cleanInt(statsTokens[10]) : 0;
+
+                    records.push({
+                        conference: currentConference,
+                        position: pos,
+                        team: rawTeamName,
+                        mp: mp,
+                        w: w,
+                        wo: wo,
+                        wp: wp,
+                        l: l,
+                        lo: lo,
+                        lp: lp,
+                        f: f,
+                        a: a,
+                        d: d,
+                        p: p
+                    });
+                }
+            }
+            return records;
+        }
+
+        function parseOfficialKHL(rawText) {
+            if (!rawText || !rawText.trim()) return [];
+            const lines = rawText.split('\n').map(l => l.replace(/[\t\r]+/g, ' ').trim()).filter(l => l.length > 0);
+            
+            let westTeams = [];
+            let eastTeams = [];
+            let currentConference = "Eastern Conference";
+
+            const ignoreTokens = new Set([
+                'hide score', 'team', 'pts', 'gp', 'w', 'otw', 'sow', 'sol', 'otl', 'len', 'l', 'g', 'last games', 'next', 'standings'
+            ]);
+
+            let i = 0;
+            while (i < lines.length) {
+                let line = lines[i];
+                let lineLower = line.toLowerCase();
+
+                if (lineLower.includes('western conference') || lineLower === 'western conference') {
+                    currentConference = 'Western Conference';
+                    i++;
+                    continue;
+                } else if (lineLower.includes('eastern conference') || lineLower === 'eastern conference') {
+                    currentConference = 'Eastern Conference';
+                    i++;
+                    continue;
+                }
+
+                if (lineLower === 'last games' || lineLower === 'next') {
+                    i++;
+                    continue;
+                }
+
+                if (ignoreTokens.has(lineLower)) {
+                    i++;
+                    continue;
+                }
+
+                if (/^\d+$/.test(line)) {
+                    let pos = parseInt(line, 10);
+                    if (i + 11 < lines.length) {
+                        let teamName = lines[i+1];
+                        if (!ignoreTokens.has(teamName.toLowerCase()) && !/^\d+$/.test(teamName)) {
+                            let pts = cleanInt(lines[i+2]);
+                            let gp = cleanInt(lines[i+3]);
+                            let w = cleanInt(lines[i+4]);
+                            let otw = cleanInt(lines[i+5]);
+                            let sow = cleanInt(lines[i+6]);
+let sol = cleanInt(lines[i+7]);
+let otl = cleanInt(lines[i+8]);
+let len = cleanInt(lines[i+9]);
+let l   = cleanInt(lines[i+10]);
+                            let gStr = lines[i+11];
+
+                            let gf = 0, ga = 0;
+                            if (gStr && gStr.includes('-')) {
+                                let parts = gStr.split('-');
+                                gf = cleanInt(parts[0]);
+                                ga = cleanInt(parts[1]);
+                            }
+
+                            let teamObj = {
+                                conference: currentConference,
+                                pos: pos,
+                                team: teamName,
+                                pts: pts,
+                                gp: gp,
+                                w: w,
+                                otw: otw,
+                                sow: sow,
+                                otl: otl,
+                                sol: sol,
+                                l: l,
+                                gf: gf,
+                                ga: ga,
+                                netDiff: gf - ga,
+                                normalizedName: normalizeTeam(teamName)
+                            };
+
+                            if (currentConference.toLowerCase().includes('west')) {
+                                westTeams.push(teamObj);
+                            } else {
+                                eastTeams.push(teamObj);
+                            }
+
+                            i += 12;
+                            continue;
+                        }
+                    }
+                }
+
+                let tokens = line.split(/\s+/);
+                if (tokens.length >= 12 && /^\d+$/.test(tokens[0])) {
+                    let pos = parseInt(tokens[0], 10);
+                    if (tokens.length >= 13) {
+                        let teamName = tokens.slice(1, tokens.length - 11).join(' ');
+                        let stats = tokens.slice(tokens.length - 11);
+                        let pts = cleanInt(stats[0]);
+                        let gp = cleanInt(stats[1]);
+                        let w = cleanInt(stats[2]);
+                        let otw = cleanInt(stats[3]);
+                        let sow = cleanInt(stats[4]);
+let sol = cleanInt(stats[5]);
+let otl = cleanInt(stats[6]);
+                        let l = cleanInt(stats[8]);
+                        let gStr = stats[9];
+                        let gf = 0, ga = 0;
+                        if (gStr && gStr.includes('-')) {
+                            let parts = gStr.split('-');
+                            gf = cleanInt(parts[0]);
+                            ga = cleanInt(parts[1]);
+                        }
+
+                        let teamObj = {
+                            conference: currentConference,
+                            pos: pos,
+                            team: teamName,
+                            pts: pts,
+                            gp: gp,
+                            w: w,
+                            otw: otw,
+                            sow: sow,
+                            otl: otl,
+                            sol: sol,
+                            l: l,
+                            gf: gf,
+                            ga: ga,
+                            netDiff: gf - ga,
+                            normalizedName: normalizeTeam(teamName)
+                        };
+
+                        if (currentConference.toLowerCase().includes('west')) {
+                            westTeams.push(teamObj);
+                        } else {
+                            eastTeams.push(teamObj);
+                        }
+                        i++;
+                        continue;
+                    }
+                }
+
+                i++;
+            }
+
+            return [...westTeams, ...eastTeams];
+        }
+
+        let currentResults = [];
+
+        function renderDynamicHeader() {
+            const headTr = document.querySelector('#resultsHead tr');
+            let html = `<th>Pos<span class="sub-header">Scoresway / Official</span></th>`;
+            html += `<th style="text-align: left;">Team</th>`;
+
+            activeLeagueConfig.comparisonColumns.forEach(col => {
+                if (col.key !== 'pos') {
+                    html += `<th>${col.label}<span class="sub-header">Scoresway / Official</span></th>`;
+                }
+            });
+
+            html += `<th>Status</th>`;
+            headTr.innerHTML = html;
+        }
+
+        function compareKHLStandings() {
+            const scoreswayRaw = document.getElementById('scoreswayInput').value;
+            const officialRaw = document.getElementById('officialInput').value;
+
+            const scoreswayList = parseScoreswayKHL(scoreswayRaw);
+            const officialList = parseOfficialKHL(officialRaw);
+
+            if (scoreswayList.length === 0 && officialList.length === 0) {
+                alert("Please provide valid input data for comparison.");
+                return;
+            }
+
+            const officialByConf = {};
+            officialList.forEach(off => {
+                let conf = off.conference || "Eastern Conference";
+                if (!officialByConf[conf]) officialByConf[conf] = [];
+                officialByConf[conf].push(off);
+            });
+
+            const officialTeams = [];
+            Object.keys(officialByConf).forEach(conf => {
+                officialByConf[conf].forEach((off, idx) => {
+                    officialTeams.push({
+                        record: off,
+                        position: idx + 1,
+                        conference: conf,
+                        normalizedName: off.normalizedName
+                    });
+                });
+            });
+
+            let matchedCount = 0;
+            let mismatchedCount = 0;
+            let extraInScoreswayCount = 0;
+            let missingInScoreswayCount = 0;
+
+            const matchedOfficialKeys = new Set();
+            currentResults = [];
+
+            scoreswayList.forEach(scoresway => {
+                const normalizedScoresway = normalizeTeam(scoresway.team);
+
+                let matchedTeam = officialTeams.find(o => o.normalizedName === normalizedScoresway);
+
+                if (!matchedTeam) {
+                    matchedTeam = officialTeams.find(o =>
+                        normalizedScoresway.includes(o.normalizedName) ||
+                        o.normalizedName.includes(normalizedScoresway)
+                    );
+                }
+
+                if (matchedTeam) {
+                    const off = matchedTeam.record;
+                    const officialPos = matchedTeam.position;
+                    matchedOfficialKeys.add(matchedTeam.normalizedName);
+
+                    const isPosMatch = scoresway.position === officialPos;
+                    const isMPMatch = scoresway.mp === off.gp;
+                    const isWMatch = scoresway.w === off.w;
+                    const isWOMatch = scoresway.wo === off.otw;
+                    const isWPMatch = scoresway.wp === off.sow;
+                    const isLMatch = scoresway.l === off.l;
+                    const isLOMatch = scoresway.lo === off.otl;
+                    const isLPMatch = scoresway.lp === off.sol;
+                    const isGFMatch = scoresway.f === off.gf;
+                    const isGAMatch = scoresway.a === off.ga;
+                    const isDiffMatch = scoresway.d === off.netDiff;
+                    const isPMatch = scoresway.p === off.pts;
+
+                    const allMatched = isPosMatch && isMPMatch && isWMatch && isWOMatch && isWPMatch && isLMatch && isLOMatch && isLPMatch && isGFMatch && isGAMatch && isDiffMatch && isPMatch;
+
+                    if (allMatched) {
+                        matchedCount++;
+                    } else {
+                        mismatchedCount++;
+                    }
+
+                    currentResults.push({
+                        conference: scoresway.conference,
+                        team: scoresway.team,
+                        offTeam: off.team,
+                        pos: { scoresway: scoresway.position, off: officialPos, match: isPosMatch },
+                        mp: { scoresway: scoresway.mp, off: off.gp, match: isMPMatch },
+                        w: { scoresway: scoresway.w, off: off.w, match: isWMatch },
+                        wo: { scoresway: scoresway.wo, off: off.otw, match: isWOMatch },
+                        wp: { scoresway: scoresway.wp, off: off.sow, match: isWPMatch },
+                        l: { scoresway: scoresway.l, off: off.l, match: isLMatch },
+                        lo: { scoresway: scoresway.lo, off: off.otl, match: isLOMatch },
+                        lp: { scoresway: scoresway.lp, off: off.sol, match: isLPMatch },
+                        gf: { scoresway: scoresway.f, off: off.gf, match: isGFMatch },
+                        ga: { scoresway: scoresway.a, off: off.ga, match: isGAMatch },
+                        diff: { scoresway: scoresway.d, off: off.netDiff, match: isDiffMatch },
+                        p: { scoresway: scoresway.p, off: off.pts, match: isPMatch },
+                        status: allMatched ? 'MATCH' : 'MISMATCH'
+                    });
+                } else {
+                    extraInScoreswayCount++;
+                    currentResults.push({
+                        conference: scoresway.conference,
+                        team: scoresway.team,
+                        offTeam: 'Not Found',
+                        pos: { scoresway: scoresway.position, off: '-', match: false },
+                        mp: { scoresway: scoresway.mp, off: '-', match: false },
+                        w: { scoresway: scoresway.w, off: '-', match: false },
+                        wo: { scoresway: scoresway.wo, off: '-', match: false },
+                        wp: { scoresway: scoresway.wp, off: '-', match: false },
+                        l: { scoresway: scoresway.l, off: '-', match: false },
+                        lo: { scoresway: scoresway.lo, off: '-', match: false },
+                        lp: { scoresway: scoresway.lp, off: '-', match: false },
+                        gf: { scoresway: scoresway.f, off: '-', match: false },
+                        ga: { scoresway: scoresway.a, off: '-', match: false },
+                        diff: { scoresway: scoresway.d, off: '-', match: false },
+                        p: { scoresway: scoresway.p, off: '-', match: false },
+                        status: 'EXTRA IN SCORESWAY'
+                    });
+                }
+            });
+
+            officialTeams.forEach((matchTeam, idx) => {
+                if (!matchedOfficialKeys.has(matchTeam.normalizedName)) {
+                    missingInScoreswayCount++;
+                    currentResults.push({
+                        conference: matchTeam.conference,
+                        team: 'Not Found',
+                        offTeam: matchTeam.record.team,
+                        pos: { scoresway: '-', off: matchTeam.position, match: false },
+                        mp: { scoresway: '-', off: matchTeam.record.gp, match: false },
+                        w: { scoresway: '-', off: matchTeam.record.w, match: false },
+                        wo: { scoresway: '-', off: matchTeam.record.otw, match: false },
+                        wp: { scoresway: '-', off: matchTeam.record.sow, match: false },
+                        l: { scoresway: '-', off: matchTeam.record.l, match: false },
+                        lo: { scoresway: '-', off: matchTeam.record.otl, match: false },
+                        lp: { scoresway: '-', off: matchTeam.record.sol, match: false },
+                        gf: { scoresway: '-', off: matchTeam.record.gf, match: false },
+                        ga: { scoresway: '-', off: matchTeam.record.ga, match: false },
+                        diff: { scoresway: '-', off: matchTeam.record.netDiff, match: false },
+                        p: { scoresway: '-', off: matchTeam.record.pts, match: false },
+                        status: 'MISSING IN SCORESWAY'
+                    });
+                }
+            });
+
+            document.getElementById('metricTotal').textContent = currentResults.length;
+            document.getElementById('metricMatched').textContent = matchedCount;
+            document.getElementById('metricMismatched').textContent = mismatchedCount;
+            document.getElementById('metricMissing').textContent = missingInScoreswayCount;
+            document.getElementById('metricExtra').textContent = extraInScoreswayCount;
+
+            renderTableConferenceWise(currentResults);
+        }
+
+        function processComparison() {
+            renderDynamicHeader();
+            compareKHLStandings();
+        }
+
+        function renderTableConferenceWise(results) {
+            const resultsBody = document.getElementById('resultsBody');
+            const totalCols = activeLeagueConfig.comparisonColumns.length + 2;
+
+            if (results.length === 0) {
+                resultsBody.innerHTML = `<tr><td colspan="${totalCols}" class="empty-placeholder">No comparison records generated.</td></tr>`;
+                return;
+            }
+
+            const conferences = [...new Set(results.map(r => r.conference))];
+            let html = '';
+
+            conferences.forEach(confName => {
+                let confResults = results.filter(r => r.conference.toLowerCase() === confName.toLowerCase());
+                if (confResults.length === 0) return;
+
+                html += `
+                    <tr class="conference-header-row">
+                        <td colspan="${totalCols}">${confName}</td>
+                    </tr>
+                `;
+
+                confResults.forEach(row => {
+                    const badgeClass = row.status === 'MATCH' ? 'badge-match' :
+                                       row.status === 'MISMATCH' ? 'badge-mismatch' :
+                                       row.status === 'MISSING IN SCORESWAY' ? 'badge-missing' : 'badge-extra';
+
+                    const displayName = row.team !== 'Not Found' ? row.team : row.offTeam;
+                    const rowClass = row.status === 'MATCH' ? 'row-match' : '';
+
+                    html += `
+                        <tr class="${rowClass}">
+                            <td class="${row.pos.match ? 'cell-match' : (row.status === 'MATCH' ? 'cell-match' : 'cell-mismatch')} val-comparison">${row.pos.scoresway} / ${row.pos.off}</td>
+                            <td class="team-cell">${displayName}</td>
+                            <td class="${row.mp.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.mp.scoresway} / ${row.mp.off}</td>
+                            <td class="${row.w.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.w.scoresway} / ${row.w.off}</td>
+                            <td class="${row.wo.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.wo.scoresway} / ${row.wo.off}</td>
+                            <td class="${row.wp.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.wp.scoresway} / ${row.wp.off}</td>
+                            <td class="${row.l.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.l.scoresway} / ${row.l.off}</td>
+                            <td class="${row.lo.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.lo.scoresway} / ${row.lo.off}</td>
+                            <td class="${row.lp.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.lp.scoresway} / ${row.lp.off}</td>
+                            <td class="${row.gf.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.gf.scoresway} / ${row.gf.off}</td>
+                            <td class="${row.ga.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.ga.scoresway} / ${row.ga.off}</td>
+                            <td class="${row.diff.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.diff.scoresway} / ${row.diff.off}</td>
+                            <td class="${row.p.match ? 'cell-match' : 'cell-mismatch'} val-comparison">${row.p.scoresway} / ${row.p.off}</td>
+                            <td><span class="badge ${badgeClass}">${row.status}</span></td>
+                        </tr>
+                    `;
+                });
+            });
+
+            resultsBody.innerHTML = html;
+        }
+
+        function clearData() {
+            document.getElementById('scoreswayInput').value = '';
+            document.getElementById('officialInput').value = '';
+            renderDynamicHeader();
+            const totalCols = activeLeagueConfig.comparisonColumns.length + 2;
+            document.getElementById('resultsBody').innerHTML = `<tr><td colspan="${totalCols}" class="empty-placeholder">Paste data into the boxes above and click "Compare Data" to view results.</td></tr>`;
+
+            document.getElementById('metricTotal').textContent = '0';
+            document.getElementById('metricMatched').textContent = '0';
+            document.getElementById('metricMismatched').textContent = '0';
+            document.getElementById('metricMissing').textContent = '0';
+            document.getElementById('metricExtra').textContent = '0';
+            currentResults = [];
+        }
+
+        function exportToExcel() {
+            if (currentResults.length === 0) {
+                alert("No comparison results available to export.");
+                return;
+            }
+
+            const exportData = currentResults.map(row => {
+                const teamName = row.team !== 'Not Found' ? row.team : row.offTeam;
+                return {
+                    "Conference": row.conference,
+                    "Pos (Scoresway / Official)": `${row.pos.scoresway} / ${row.pos.off}`,
+                    "Team": teamName,
+                    "MP/GP": `${row.mp.scoresway} / ${row.mp.off}`,
+                    "W": `${row.w.scoresway} / ${row.w.off}`,
+                    "WO/OTW": `${row.wo.scoresway} / ${row.wo.off}`,
+                    "WP/SOW": `${row.wp.scoresway} / ${row.wp.off}`,
+                    "L": `${row.l.scoresway} / ${row.l.off}`,
+                    "LO/OTL": `${row.lo.scoresway} / ${row.lo.off}`,
+                    "LP/SOL": `${row.lp.scoresway} / ${row.lp.off}`,
+                    "GF": `${row.gf.scoresway} / ${row.gf.off}`,
+                    "GA": `${row.ga.scoresway} / ${row.ga.off}`,
+                    "Diff": `${row.diff.scoresway} / ${row.diff.off}`,
+                    "P/PTS": `${row.p.scoresway} / ${row.p.off}`,
+                    "Status": row.status
+                };
+            });
+
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "KHL_Comparison");
+            XLSX.writeFile(workbook, "KHL_Table_Comparison.xlsx");
+        }
+
+        function copyResults() {
+            if (currentResults.length === 0) {
+                alert("No results to copy.");
+                return;
+            }
+
+            let text = "Conference\tPos\tTeam\tMP/GP\tW\tWO/OTW\tWP/SOW\tL\tLO/OTL\tLP/SOL\tGF\tGA\tDiff\tP/PTS\tStatus\n";
+            currentResults.forEach(row => {
+                const teamName = row.team !== 'Not Found' ? row.team : row.offTeam;
+                text += `${row.conference}\t${row.pos.scoresway} / ${row.pos.off}\t${teamName}\t${row.mp.scoresway} / ${row.mp.off}\t${row.w.scoresway} / ${row.w.off}\t${row.wo.scoresway} / ${row.wo.off}\t${row.wp.scoresway} / ${row.wp.off}\t${row.l.scoresway} / ${row.l.off}\t${row.lo.scoresway} / ${row.lo.off}\t${row.lp.scoresway} / ${row.lp.off}\t${row.gf.scoresway} / ${row.gf.off}\t${row.ga.scoresway} / ${row.ga.off}\t${row.diff.scoresway} / ${row.diff.off}\t${row.p.scoresway} / ${row.p.off}\t${row.status}\n`;
+            });
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Comparison results copied to clipboard!");
+            }).catch(err => {
+                alert("Failed to copy results: " + err);
+            });
+        }
+
+        window.onload = function() {
+            renderDynamicHeader();
+        };
+    </script>
+</body>
+</html>
