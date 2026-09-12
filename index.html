@@ -304,7 +304,7 @@
         }
 
         .btn-deactivate {
-            background-color: #fffbeeb;
+            background-color: #fffbeb;
             color: var(--warning-amber);
             border: 1px solid var(--warning-amber);
         }
@@ -710,13 +710,38 @@
             return true;
         }
 
-        // 4. Initialization
+        // 4. Initialization & Session Persistence
         window.addEventListener('DOMContentLoaded', () => {
-            currentUserRole = null;
-            localStorage.removeItem('sportsPortalRole');
-            document.getElementById('portalWrapper').classList.add('hidden');
-            updateUserUI();
-            openModal('loginModal');
+            const savedRole = localStorage.getItem('sportsPortalRole');
+            if (savedRole) {
+                currentUserRole = savedRole;
+                updateUserUI();
+                document.getElementById('portalWrapper').classList.remove('hidden');
+                fetchTableChecks();
+            } else {
+                currentUserRole = null;
+                localStorage.removeItem('sportsPortalRole');
+                document.getElementById('portalWrapper').classList.add('hidden');
+                updateUserUI();
+                openModal('loginModal');
+            }
+        });
+
+        // 5. Popstate Event Listener for Browser History Navigation
+        window.addEventListener('popstate', (event) => {
+            if (!event.state) {
+                currentView = 'SPORTS';
+                selectedSport = null;
+                selectedCountry = null;
+                document.getElementById('searchInput').value = '';
+            } else {
+                currentView = event.state.view;
+                selectedSport = event.state.sport || null;
+                selectedCountry = event.state.country || null;
+                document.getElementById('searchInput').value = event.state.search || '';
+            }
+
+            renderCurrentView();
         });
 
         // 5. Firestore Fetch Data
@@ -741,6 +766,14 @@
                     
                     calculateMetrics();
                     renderCurrentView();
+
+                    // Initial State after successful login and data load
+                    history.replaceState({
+                        view: 'SPORTS',
+                        sport: null,
+                        country: null,
+                        search: document.getElementById('searchInput').value
+                    }, '', '');
                 })
                 .catch((error) => {
                     console.error("Error reading Firestore: ", error);
@@ -870,6 +903,14 @@
             selectedSport = sport;
             currentView = 'COUNTRIES';
             document.getElementById('searchInput').value = '';
+            
+            history.pushState({
+                view: 'COUNTRIES',
+                sport: selectedSport,
+                country: null,
+                search: document.getElementById('searchInput').value
+            }, '', '');
+
             renderCurrentView();
         }
 
@@ -928,6 +969,14 @@
             selectedCountry = country;
             currentView = 'COMPETITIONS';
             document.getElementById('searchInput').value = '';
+
+            history.pushState({
+                view: 'COMPETITIONS',
+                sport: selectedSport,
+                country: selectedCountry,
+                search: document.getElementById('searchInput').value
+            }, '', '');
+
             renderCurrentView();
         }
 
@@ -1075,21 +1124,23 @@
         // 8. Search Handler
         function handleScopedSearch() {
             if (!requireLogin()) return;
+            
+            // Keep search input state updated in history state
+            const currentSearch = document.getElementById('searchInput').value;
+            history.replaceState({
+                view: currentView,
+                sport: selectedSport,
+                country: selectedCountry,
+                search: currentSearch
+            }, '', '');
+
             renderCurrentView();
         }
 
         // 9. Navigation Breadcrumbs & Back Logic
         function navigateBack() {
             if (!requireLogin()) return;
-            document.getElementById('searchInput').value = '';
-            if (currentView === 'COMPETITIONS') {
-                selectedCountry = null;
-                currentView = 'COUNTRIES';
-            } else if (currentView === 'COUNTRIES') {
-                selectedSport = null;
-                currentView = 'SPORTS';
-            }
-            renderCurrentView();
+            history.back();
         }
 
         function updateBreadcrumbs() {
@@ -1124,6 +1175,14 @@
             selectedCountry = null;
             currentView = 'SPORTS';
             document.getElementById('searchInput').value = '';
+            
+            history.pushState({
+                view: 'SPORTS',
+                sport: null,
+                country: null,
+                search: ''
+            }, '', '');
+
             renderCurrentView();
         }
 
@@ -1148,6 +1207,7 @@
 
             if (user === "OSED" && pass === "OSED@1234") {
                 currentUserRole = 'USER';
+                localStorage.setItem('sportsPortalRole', currentUserRole);
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
@@ -1155,6 +1215,7 @@
                 fetchTableChecks();
             } else if (user === "Partha Sarathy" && pass === "Radha@123") {
                 currentUserRole = 'ADMIN';
+                localStorage.setItem('sportsPortalRole', currentUserRole);
                 closeModal('loginModal');
                 resetLoginForm();
                 updateUserUI();
